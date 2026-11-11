@@ -1,0 +1,21 @@
+{
+  "name": "mineroute",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MineRoute - Unified Next.js AI Gateway, 19-Strategy Router, 12-Engine Compressor & Autonomous Multi-Agent Team Orchestrator",
+  "scripts": {
+    "dev": "next dev -p 20128",
+    "build": "next build",
+    "start": "next start -p 20128"
+  },
+  "dependencies": {
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "typescript": "^5.5.3"
+  }
+}
