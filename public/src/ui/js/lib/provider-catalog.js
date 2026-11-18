@@ -11,6 +11,7 @@ const BUILTIN_PROVIDERS = [
   {id:'mistral',name:'Mistral AI',url:'https://api.mistral.ai/v1',pre:'',free:1,reset:'Monthly',cat:'Free',env:'MISTRAL_API_KEY'},
   {id:'codestral',name:'Mistral Codestral',url:'https://codestral.mistral.ai/v1',pre:'',free:1,reset:'Monthly',cat:'Free',env:'CODESTRAL_API_KEY'},
   {id:'cohere',name:'Cohere (Command R+)',url:'https://api.cohere.ai/compatibility/v1',pre:'',free:1,reset:'Monthly',cat:'Free',env:'COHERE_API_KEY'},
+  {id:'coarena',name:'Coarena AI (Daily Free Models)',url:'https://coarena.ai/api/v1',pre:'',free:1,reset:'Daily, UTC',cat:'Free',env:'COARENA_API_KEY'},
   {id:'perplexity',name:'Perplexity AI',url:'https://api.perplexity.ai',pre:'pplx-',free:0,reset:'Pay as you go',cat:'Paid',env:'PERPLEXITY_API_KEY'},
 
   // Fast Inference & Serverless Clouds
