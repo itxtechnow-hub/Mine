@@ -273,6 +273,7 @@ test('Team Leader receives executable spawn_subagent tool and queued tasks reach
     onEvent: (event) => events.push(event),
     callModel: async (modelId, prompt, options) => {
       if (options.role === 'planner' && Array.isArray(options.tools)) {
+        assert.strictEqual(options.toolChoice, 'required');
         plannerToolSeen = options.tools.some((tool) => tool.function && tool.function.name === 'spawn_subagent');
         assert.match(options.messages[0].content, /Delegate independent work/);
         const toolResult = options.messages.find((message) => message.role === 'tool');
@@ -361,4 +362,38 @@ test('Team Leader can spawn independent subagents concurrently and synthesize bo
   assert.deepStrictEqual(result.nodes.map((node) => node.taskIndex), [1, 2]);
   assert.match(result.final, /Result A and Result B/);
   assert.strictEqual(events.filter((event) => event.type === 'delegate.started' && /Investigate question/.test(event.task || '')).length, 2);
+});
+
+
+test('Team Leader fails closed when planner does not invoke spawn_subagent', async () => {
+  const events = [];
+  let workerRuns = 0;
+  const team = {
+    id: 'no-delegation-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Create two independent subagents', {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    onEvent: (event) => events.push(event),
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        assert.strictEqual(options.toolChoice, 'required');
+        return { text: 'I cannot create subagents because the tool is unavailable.' };
+      }
+      if (options.role === 'worker') workerRuns += 1;
+      return { text: 'Unexpected worker or synthesis output.' };
+    },
+  });
+  assert.strictEqual(workerRuns, 0, 'workers must not be started without a real plan or spawn call');
+  assert.strictEqual(result.status, 'failed');
+  assert.strictEqual(result.failure, 'no_subagents_created');
+  assert.match(result.final, /did not create any subagents/i);
+  assert.strictEqual(result.nodes.length, 0);
+  assert.ok(events.some((event) => event.type === 'run.failed'));
 });
