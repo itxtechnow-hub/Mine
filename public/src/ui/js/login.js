@@ -48,7 +48,7 @@
         <label for="lock-password-input">Password</label>
         <div class="auth-input-wrap">
           <input class="auth-input" id="lock-password-input" type="password"
-                 placeholder="Enter your password" autocomplete="current-password" required autofocus>
+                 placeholder="Enter your password" autocomplete="current-password" required>
           <button class="auth-password-toggle" type="button" aria-label="Show password">Show</button>
         </div>
       </div>
