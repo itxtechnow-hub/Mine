@@ -58,6 +58,27 @@ function startUpstream() {
           res.writeHead(404, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"no such model"}}');
         }
+        if (Array.isArray(parsed.tools) && parsed.tools.some((tool) => tool.function && tool.function.name === 'spawn_subagent') &&
+            !(parsed.messages || []).some((message) => message.role === 'tool')) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({
+            id: 'spawn-call',
+            choices: [{ index: 0, message: { role: 'assistant', content: null, tool_calls: [{
+              id: 'spawn-e2e-1',
+              type: 'function',
+              function: { name: 'spawn_subagent', arguments: '{"task":"Complete the requested task","specialty":"general"}' },
+            }] } }],
+            usage: { total_tokens: 8 },
+          }));
+        }
+        if ((parsed.messages || []).some((message) => message.role === 'tool' && String(message.tool_call_id || '').startsWith('spawn-'))) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({
+            id: 'spawn-result',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'echo:good-model' } }],
+            usage: { total_tokens: 10 },
+          }));
+        }
         if (Array.isArray(parsed.tools) && parsed.tools.some((tool) => tool.function && tool.function.name === 'calculator') &&
             !(parsed.messages || []).some((message) => message.role === 'tool')) {
           res.writeHead(200, { 'content-type': 'application/json' });
