@@ -413,7 +413,9 @@ test('Team can route worker results directly to an agent when synthesizer is rem
   };
   assert.deepStrictEqual(validateTeam(team), []);
   let agentSawWorkerResult = false;
+  const events = [];
   const result = await runTeam(team, 'Research this topic', {
+    onEvent: (event) => events.push(event),
     models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/agent' }],
     modelQueue: [],
     callModel: async (modelId, prompt, options) => {
@@ -434,13 +436,14 @@ test('Team can route worker results directly to an agent when synthesizer is rem
       return { text: 'Unexpected model role.' };
     },
   });
-  assert.ok(agentSawWorkerResult);
+  assert.ok(agentSawWorkerResult, JSON.stringify({ events, nodes: result.nodes, final: result.final }));
   assert.match(result.final, /directly by the agent/);
 });
 
 
 test('parallel subagents rotate across worker templates and preserve assigned models', async () => {
   const observed = [];
+  const events = [];
   const team = {
     id: 'distinct-model-team',
     nodes: [
@@ -452,6 +455,7 @@ test('parallel subagents rotate across worker templates and preserve assigned mo
     connections: [],
   };
   const result = await runTeam(team, 'Do two independent subtasks', {
+    onEvent: (event) => events.push(event),
     models: ['provider/leader', 'provider/model-a', 'provider/model-b', 'provider/synth'].map((id) => ({ id })),
     modelQueue: [],
     callModel: async (modelId, prompt, options) => {
@@ -470,7 +474,7 @@ test('parallel subagents rotate across worker templates and preserve assigned mo
       return { text: 'unexpected' };
     },
   });
-  assert.deepStrictEqual(observed.map((item) => item.modelId).sort(), ['provider/model-a', 'provider/model-b']);
+  assert.deepStrictEqual(observed.map((item) => item.modelId).sort(), ['provider/model-a', 'provider/model-b'], JSON.stringify({ events, nodes: result.nodes, final: result.final }));
   assert.ok(observed.some((item) => item.prompt.includes('Research the first topic')));
   assert.ok(observed.some((item) => item.prompt.includes('Analyze the second topic')));
   assert.strictEqual(result.nodes.length, 2);
