@@ -345,7 +345,7 @@ test('Team Leader can spawn independent subagents concurrently and synthesize bo
         maximumActiveWorkers = Math.max(maximumActiveWorkers, activeWorkers);
         await new Promise((resolve) => setTimeout(resolve, 30));
         activeWorkers -= 1;
-        return { text: options.prompt && options.prompt.includes('question A') ? 'Result A' : 'Result B' };
+        return { text: prompt.includes('question A') ? 'Result A' : 'Result B' };
       }
       if (options.role === 'synthesizer') {
         assert.match(prompt, /Result A/);
