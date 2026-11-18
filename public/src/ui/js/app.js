@@ -962,13 +962,19 @@ function populateManualProviderSelect() {
   if (!hidden) return;
   hidden.value = 'anthropic';
   const account = document.getElementById('cloudflare-account-id');
-  if (account) account.value = '';
+  const saved = (S.providers || []).find((p) => p && p.id === 'cloudflare-workers-ai');
+  if (account) account.value = saved && saved.accountId ? saved.accountId : '';
   updateSelectedProviderDisplay('anthropic');
 }
 
 function updateCloudflareAccountField(providerId) {
   const group = document.getElementById('cloudflare-account-group');
   if (group) group.hidden = providerId !== 'cloudflare-workers-ai';
+  const account = document.getElementById('cloudflare-account-id');
+  if (providerId === 'cloudflare-workers-ai' && account && !account.value) {
+    const saved = (S.providers || []).find((p) => p && p.id === 'cloudflare-workers-ai');
+    if (saved && saved.accountId) account.value = saved.accountId;
+  }
 }
 
 function updateSelectedProviderDisplay(id) {
