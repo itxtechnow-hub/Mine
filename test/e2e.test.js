@@ -115,12 +115,13 @@ test('fresh deployment requires creating a password, then a session', async () =
   const short = await rpc('auth:setPassword', { newPassword: 'short' });
   assert.strictEqual(short.result.success, false);
 
-  const ok = await rpc('auth:setPassword', { newPassword: 'correct horse battery' });
+  const ok = await rpc('auth:setPassword', { username: 'mineowner', newPassword: 'correct horse battery' });
   assert.strictEqual(ok.result.success, true);
   assert.ok(cookie.startsWith('mine_session='));
 
   st = await rpc('auth:getStatus');
   assert.strictEqual(st.result.authenticated, true);
+  assert.strictEqual(st.result.username, 'mineowner');
   assert.strictEqual(st.result.needsSetup, false);
 
   // A stranger cannot overwrite the password.
@@ -128,9 +129,11 @@ test('fresh deployment requires creating a password, then a session', async () =
   cookie = '';
   const hijack = await rpc('auth:setPassword', { newPassword: 'attacker-password' });
   assert.strictEqual(hijack.result.success, false);
-  const wrong = await rpc('auth:verify', 'nope-nope');
+  const wrongUser = await rpc('auth:verify', { username: 'intruder', password: 'correct horse battery' });
+  assert.strictEqual(wrongUser.result.success, false);
+  const wrong = await rpc('auth:verify', { username: 'mineowner', password: 'nope-nope' });
   assert.strictEqual(wrong.result.success, false);
-  const right = await rpc('auth:verify', 'correct horse battery');
+  const right = await rpc('auth:verify', { username: 'mineowner', password: 'correct horse battery' });
   assert.strictEqual(right.result.success, true);
   assert.ok(cookie && cookie !== saved);
 });
