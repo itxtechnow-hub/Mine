@@ -1512,7 +1512,7 @@ window.A = window.A || {};
     const toolId = el.dataset.tool;
     const node = editorState.nodes.find((n) => n.id === id);
     if (node) {
-      if (!node.enabledTools) node.enabledTools = [];
+      if (!Array.isArray(node.enabledTools)) node.enabledTools = ['calculator', 'memory_list', 'memory_search', 'memory_read'];
       if (el.checked) {
         if (!node.enabledTools.includes(toolId)) node.enabledTools.push(toolId);
       } else {
