@@ -106,11 +106,11 @@ function renderSettingsView() {
 
       <!-- Security -->
       <section class="card">
-        <div class="panel-head"><h3>Password Protection</h3></div>
+        <div class="panel-head"><h3>Account Security</h3></div>
         <div class="set">
           <span>
-            <b>Startup lock</b><br>
-            <span class="mute">Required on a hosted console — sessions last 7 days per browser</span>
+            <b>Username & password</b><br>
+            <span class="mute">Required on this hosted console — sessions last 7 days per browser</span>
           </span>
           <span class="chip ${authEnabled ? 'ok' : 'warn'}">${authEnabled ? 'Protected' : 'No Password'}</span>
         </div>
@@ -122,7 +122,8 @@ function renderSettingsView() {
             <button class="btn p sm" data-a="set-password">Enable Password Protection</button>
           </div>` : `
           <div class="set-block">
-            <div class="field-row"><label>Current password</label><input type="password" id="cur-pwd" placeholder="Current password"></div>
+            <div class="field-row"><label>Username</label><input type="text" id="account-username" value="${esc((S.auth && S.auth.username) || 'admin')}" placeholder="Username" autocomplete="username" autocapitalize="none"></div>
+            <div class="field-row"><label>Current password</label><input type="password" id="cur-pwd" placeholder="Current password" autocomplete="current-password"></div>
             <div class="field-row"><label>New password (min 8 characters)</label><input type="password" id="change-pwd" placeholder="New password"></div>
             <div class="field-row"><label>Confirm new password</label><input type="password" id="change-confirm-pwd" placeholder="Confirm new password"></div>
             <div class="row-actions">
