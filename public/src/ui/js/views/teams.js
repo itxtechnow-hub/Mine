@@ -1686,6 +1686,84 @@ window.A = window.A || {};
     }
   });
 
+  window.A['run-team-direct'] = async (el) => {
+    const id = el && el.dataset && el.dataset.id;
+    const team = (window.S && window.S.teams || []).find((item) => item.id === id);
+    const prompt = document.getElementById('team-run-prompt-' + id);
+    const feed = document.getElementById('team-live-feed-' + id);
+    if (!team || !prompt || !feed || !prompt.value.trim()) return;
+    const keyResult = await window.vault.gateway.revealKey();
+    if (!keyResult || !keyResult.key) { feed.textContent = 'Gateway key unavailable.'; return; }
+    el.disabled = true;
+    el.textContent = 'Running…';
+    feed.textContent = 'Starting Team run…\n';
+    const started = new Map();
+    const timers = new Map();
+    try {
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + keyResult.key },
+        body: JSON.stringify({ model: 'mine/team/' + (team.slug || team.id), messages: [{ role: 'user', content: prompt.value.trim() }], stream: true })
+      });
+      if (!response.ok || !response.body) throw new Error('Gateway HTTP ' + response.status + ': ' + (await response.text()).slice(0, 200));
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const read = await reader.read();
+        if (read.done) break;
+        buffer += decoder.decode(read.value, { stream: true });
+        let cut;
+        while ((cut = buffer.indexOf('\n\n')) >= 0) {
+          const frame = buffer.slice(0, cut);
+          buffer = buffer.slice(cut + 2);
+          let eventName = '', data = '';
+          frame.split('\n').forEach((line) => {
+            if (line.startsWith('event:')) eventName = line.slice(6).trim();
+            if (line.startsWith('data:')) data += line.slice(5).trim();
+          });
+          if (!data || data === '[DONE]') continue;
+          let item;
+          try { item = JSON.parse(data); } catch (_) { continue; }
+          if (eventName === 'mine.progress') {
+            const type = item.type || '';
+            if (type === 'delegate.started') {
+              started.set(item.delegateId, Date.now());
+              feed.textContent += '\n[' + item.nodeId + '] ' + item.modelId + ' — STARTED\n';
+              timers.set(item.delegateId, setInterval(() => {
+                const elapsed = Math.floor((Date.now() - started.get(item.delegateId)) / 1000);
+                feed.dataset.elapsed = item.nodeId + ': ' + elapsed + 's';
+              }, 1000));
+            } else if (type === 'delegate.delta') {
+              feed.textContent += item.text || '';
+              feed.scrollTop = feed.scrollHeight;
+            } else if (type === 'delegate.usage') {
+              feed.textContent += '\n[' + item.nodeId + '] tokens: ' + item.promptTokens + ' in / ' + item.completionTokens + ' out / ' + item.totalTokens + ' total' + (item.estimated ? ' (estimated)' : '') + '\n';
+            } else if (type === 'delegate.completed' || type === 'delegate.failed') {
+              const timer = timers.get(item.delegateId);
+              if (timer) clearInterval(timer);
+              timers.delete(item.delegateId);
+              const elapsed = started.has(item.delegateId) ? Math.floor((Date.now() - started.get(item.delegateId)) / 1000) : 0;
+              feed.textContent += '\n[' + item.nodeId + '] ' + (type === 'delegate.completed' ? 'COMPLETED' : 'FAILED') + ' · ' + elapsed + 's' + (item.error ? ' · ' + item.error : '') + '\n';
+            }
+            feed.scrollTop = feed.scrollHeight;
+          } else if (eventName === 'mine.final') {
+            feed.textContent += '\nTEAM TOTAL: ' + (item.totalTokens || 0) + ' tokens\n';
+          } else if (item.choices && item.choices[0] && item.choices[0].delta && item.choices[0].delta.content) {
+            feed.textContent += '\n\nFINAL ANSWER\n' + item.choices[0].delta.content;
+          }
+        }
+      }
+      feed.textContent += '\n\nRun stream closed.';
+    } catch (error) {
+      feed.textContent += '\nERROR: ' + error.message;
+    } finally {
+      timers.forEach((timer) => clearInterval(timer));
+      el.disabled = false;
+      el.textContent = 'Run Team';
+    }
+  };
+
   const TeamsView = {
     render() {
       const S = window.S || {};
@@ -1718,6 +1796,11 @@ window.A = window.A || {};
                 </div>
                 <div class="team-nodes-preview">
                   ${(t.nodes || []).map((n) => `<span class="node-chip ${escapeAttr(n.type)}">${escapeHtml(n.type)}${n.model ? ': ' + escapeHtml(n.model.split('/').pop()) : ''}</span>`).join('')}
+                </div>
+                <div style="margin-top:12px;display:grid;gap:7px">
+                  <textarea class="input" id="team-run-prompt-${escapeAttr(t.id)}" rows="2" placeholder="Run a task directly on this Team…"></textarea>
+                  <div class="row" style="justify-content:space-between;align-items:center"><span class="mute" style="font-size:11px">Live delegates · parallel streams · token usage</span><button class="btn sm primary" data-a="run-team-direct" data-id="${escapeAttr(t.id)}">Run Team</button></div>
+                  <pre id="team-live-feed-${escapeAttr(t.id)}" class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;font-size:11px;padding:8px;background:var(--sf);border-radius:8px"></pre>
                 </div>
               </div>
             `).join('') : '<div class="empty">No teams yet. Create one to orchestrate multiple models.</div>'}
