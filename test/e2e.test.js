@@ -324,6 +324,43 @@ test('team delegates rotate keys after a 429 instead of failing the worker', asy
   assert.ok(good.usageTotal >= 2, 'worker and synthesizer both used the fallback key');
 });
 
+test('gateway diagnostics expose provider and agent health without secrets', async () => {
+  const response = await rpc('gateway:diagnostics');
+  assert.ok(response.result.checkedAt);
+  assert.ok(Array.isArray(response.result.providers));
+  assert.ok(Array.isArray(response.result.agents));
+  const provider = response.result.providers.find((p) => p.id === 'retrymock');
+  assert.ok(provider);
+  assert.strictEqual(provider.keys.total, 2);
+  assert.strictEqual(provider.keys.cooldown, 1);
+  assert.strictEqual(response.result.mcp.outboundClient.available, false);
+  assert.strictEqual(response.result.tools.workspace.available, false);
+  const serialized = JSON.stringify(response.result);
+  assert.ok(!serialized.includes('team-key-limited'));
+  assert.ok(!serialized.includes('team-key-good'));
+});
+
+test('inbound MCP tools/list works and requires the gateway key', async () => {
+  const denied = await fetch(base + '/api/mcp', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer wrong-key' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }),
+  });
+  assert.strictEqual(denied.status, 401);
+
+  const response = await fetch(base + '/api/mcp', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gatewayKey },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
+  });
+  assert.strictEqual(response.status, 200);
+  const json = await response.json();
+  const names = json.result.tools.map((tool) => tool.name);
+  assert.ok(names.includes('memory.list'));
+  assert.ok(names.includes('memory.search'));
+  assert.ok(names.includes('memory.read'));
+});
+
 test('dashboard poll sees logs, analytics and key health', async () => {
   const p = await rpc('gateway:poll', null);
   assert.ok(p.result.logs.length >= 4);
