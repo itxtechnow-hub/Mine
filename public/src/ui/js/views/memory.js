@@ -37,10 +37,17 @@ window.A = window.A || {};
     }
     const records = (data.records || []).filter(r => !query || [r.title,r.content,(r.tags||[]).join(' ')].join(' ').toLowerCase().includes(query.toLowerCase()));
     const p = data.permissions || {};
+    const modelIds = [...new Set((window.S && window.S.models || []).map(m => m && m.id).filter(Boolean))].slice(0, 80);
+    const selectedModel = window.S && window.S.cloudMemorySelectedModel || modelIds[0] || '';
+    const modelPerm = (data.modelPermissions || {})[selectedModel] || {};
     const pending = (data.pendingDeletes || []).filter(x => x.status === 'pending');
     const edit = selected || { title:'',content:'',format:'markdown',scope:'shared',tags:[] };
     return '<div class="view">' +
       '<div class="view-head"><div><h2>Mine Cloud Memory</h2><p class="sub">Encrypted persistent memory shared by your Mine workspace and connected MCP clients.</p></div><button class="btn primary" data-a="memory-new">+ New memory</button></div>' +
+      '<section class="card" style="margin-bottom:14px"><h3>Per-model permissions</h3><p class="mute">Override workspace defaults for each discovered model. Private memory is still isolated by model ID.</p>' +
+      '<div class="field-row"><label>Model</label><select class="input" id="memory-model-select">'+(modelIds.length?modelIds.map(id=>'<option value="'+esc(id)+'" '+(id===selectedModel?'selected':'')+'>'+esc(id)+'</option>').join(''):'<option value="">No discovered models yet</option>')+'</select></div>' +
+      (selectedModel ? ['read','write','update'].map(k=>'<label class="set"><span><b>'+k[0].toUpperCase()+k.slice(1)+'</b><br><span class="mute">Override default for '+esc(selectedModel)+'</span></span><input type="checkbox" data-a="memory-model-permission" data-perm="'+k+'" '+((modelPerm[k]===undefined?p[k]!==false:modelPerm[k]!==false)?'checked':'')+'></label>').join('') : '<p class="mute">Add API keys and refresh Models to configure per-model access.</p>') +
+      '</section>' +
       '<div class="grid-2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:14px">' +
       '<section class="card"><h3>Memory MCP Server</h3><p class="mute">Connect an MCP-compatible client to read and edit Mine memory with your gateway key.</p>' +
       '<div class="field-row"><label>Streamable HTTP endpoint</label><div class="row"><input class="input mono" id="memory-endpoint" readonly value="'+esc(data.endpoint || location.origin+'/mcp')+'"><button class="btn sm" data-a="memory-copy-endpoint">Copy</button></div></div>' +
@@ -97,6 +104,21 @@ window.A = window.A || {};
     const r=await window.vault.cloudMemory.setPermissions(p);
     if(r&&r.success) { data.permissions=r.permissions; toast('Memory permissions updated'); }
     else toast((r&&r.error)||'Could not update permissions');
+  };
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'memory-model-select') {
+      window.S.cloudMemorySelectedModel = e.target.value;
+      window.render();
+    }
+  });
+  window.A['memory-model-permission'] = async (el) => {
+    const modelId = window.S && window.S.cloudMemorySelectedModel || '';
+    if (!modelId) return;
+    const current = {...((data.modelPermissions || {})[modelId] || {})};
+    current[el.dataset.perm] = el.checked;
+    const r = await window.vault.cloudMemory.setModelPermissions({modelId,permissions:current});
+    if (r && r.success) { data.modelPermissions = data.modelPermissions || {}; data.modelPermissions[modelId] = r.permissions; toast('Model permissions updated'); }
+    else toast((r && r.error) || 'Could not update model permissions');
   };
   document.addEventListener('input', e => {
     if(e.target && e.target.id==='memory-search') { query=e.target.value; const pos=e.target.selectionStart; window.render(); const next=document.getElementById('memory-search'); if(next){next.focus();next.setSelectionRange(pos,pos);} }
