@@ -302,3 +302,63 @@ test('Team Leader receives executable spawn_subagent tool and queued tasks reach
   assert.ok(events.some((event) => event.type === 'tool.started' && event.tool === 'spawn_subagent'));
   assert.ok(events.some((event) => event.type === 'delegate.started' && event.task === 'Find three reliable facts'));
 });
+
+
+test('Team Leader can spawn independent subagents concurrently and synthesize both results', async () => {
+  let activeWorkers = 0;
+  let maximumActiveWorkers = 0;
+  let plannerToolCalls = 0;
+  const events = [];
+  const team = {
+    id: 'parallel-spawn-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'researcher', type: 'worker', model: 'provider/worker', specialty: 'research' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Research two independent questions', {
+    settings: { teamMaxDelegates: 4 },
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    onEvent: (event) => events.push(event),
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        const toolMessages = options.messages.filter((message) => message.role === 'tool');
+        if (toolMessages.length >= 2) {
+          assert.ok(toolMessages.some((message) => /Result A/.test(message.content)));
+          assert.ok(toolMessages.some((message) => /Result B/.test(message.content)));
+          return { text: 'Both independent workers returned their results.' };
+        }
+        plannerToolCalls += 1;
+        return {
+          text: '',
+          toolCalls: [
+            { id: 'spawn-a', type: 'function', function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Investigate question A', specialty: 'research' }) } },
+            { id: 'spawn-b', type: 'function', function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Investigate question B', specialty: 'research' }) } },
+          ],
+        };
+      }
+      if (options.role === 'worker') {
+        activeWorkers += 1;
+        maximumActiveWorkers = Math.max(maximumActiveWorkers, activeWorkers);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        activeWorkers -= 1;
+        return { text: options.prompt && options.prompt.includes('question A') ? 'Result A' : 'Result B' };
+      }
+      if (options.role === 'synthesizer') {
+        assert.match(prompt, /Result A/);
+        assert.match(prompt, /Result B/);
+        return { text: 'Combined answer: Result A and Result B.' };
+      }
+      return { text: 'Unexpected role' };
+    },
+  });
+  assert.strictEqual(plannerToolCalls, 1);
+  assert.strictEqual(maximumActiveWorkers, 2);
+  assert.strictEqual(result.nodes.length, 2);
+  assert.deepStrictEqual(result.nodes.map((node) => node.taskIndex), [1, 2]);
+  assert.match(result.final, /Result A and Result B/);
+  assert.strictEqual(events.filter((event) => event.type === 'delegate.started' && /Investigate question/.test(event.task || '')).length, 2);
+});
