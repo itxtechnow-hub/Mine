@@ -121,7 +121,14 @@ window.A = window.A || {};
   window.A['memory-server-toggle'] = async (el) => {
     const servers=(data.mcpServers||[]).map(server=>server.id===el.dataset.id?{...server,enabled:el.checked}:server);
     const r=await window.vault.cloudMemory.setServers(servers);
-    if(r&&r.success){data.mcpServers=r.mcpServers||servers;toast(el.checked?'MCP server enabled':'MCP server disabled');}
+    if(r&&r.success){
+      data.mcpServers=r.mcpServers||servers;
+      const team=(window.S.teams||[]).find(t=>t.id===servers.find(x=>x.id===el.dataset.id)?.teamId);
+      const entry=servers.find(x=>x.id===el.dataset.id);
+      if(team&&entry){const node=(team.nodes||[]).find(n=>n.id===entry.nodeId);if(node)node.enabled=entry.enabled;await window.vault.store.set('teams',window.S.teams);}
+      toast(el.checked?'MCP server enabled':'MCP server disabled');
+      if(window.S.page==='teams'&&window.render)window.render();
+    }
     else {el.checked=!el.checked;toast((r&&r.error)||'Could not update MCP server');}
   };
   window.A['memory-model-permission'] = async (el) => {
