@@ -45,8 +45,8 @@ function renderModelsView() {
     return `
       <div class="card empty-hero">
         <h3>No models discovered yet</h3>
-        <p class="mute">Add an API key in the <b>API Keys</b> tab, then scan your providers to discover every model they expose.</p>
-        <button class="btn p" data-a="fetch-models">Scan Enabled APIs</button>
+        <p class="mute">Add API keys once, then use Refresh Models when you want to update the saved catalog. Your last discovered models stay available between visits.</p>
+        <button class="btn p" data-a="fetch-models">Refresh Models</button>
       </div>`;
   }
 
@@ -56,7 +56,7 @@ function renderModelsView() {
         <h2>${S.showBlocked ? 'Blocked Models' : 'Discovered Models'}</h2>
         <p class="sub">${S.showBlocked
           ? 'These models are hidden and excluded from routing.'
-          : 'Every model exposed by your connected API keys. Add the ones you want to the routing queue.'}</p>
+          : 'Saved model catalog. Models stay here until you manually refresh; providers that fail a refresh keep their last successful model list.'}</p>
       </div>
       <button class="btn p" data-a="fetch-models" id="btn-fetch-models">Scan Enabled APIs</button>
     </div>
