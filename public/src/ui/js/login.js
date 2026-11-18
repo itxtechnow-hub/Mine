@@ -35,23 +35,21 @@
   <section class="auth-card">
     <div class="auth-eyebrow">Locked console</div>
     <h2>Welcome back.</h2>
-    <p class="auth-lead">Enter your password to open the Mine console.</p>
+    <p class="auth-lead">Enter your username and password to open the Mine console.</p>
 
     <form class="auth-form" id="lock-form" novalidate>
+      <div class="auth-field">
+        <label for="lock-username-input">Username</label>
+        <input class="auth-input" id="lock-username-input" type="text"
+               placeholder="Your username" autocomplete="username" autocapitalize="none"
+               spellcheck="false" minlength="3" maxlength="32" required autofocus>
+      </div>
       <div class="auth-field">
         <label for="lock-password-input">Password</label>
         <div class="auth-input-wrap">
           <input class="auth-input" id="lock-password-input" type="password"
                  placeholder="Enter your password" autocomplete="current-password" required autofocus>
           <button class="auth-password-toggle" type="button" aria-label="Show password">Show</button>
-        </div>
-      </div>
-
-      <div class="auth-field" id="lock-confirm-field" hidden>
-        <label for="lock-password-confirm">Confirm password</label>
-        <div class="auth-input-wrap">
-          <input class="auth-input" id="lock-password-confirm" type="password"
-                 placeholder="Repeat the password" autocomplete="new-password">
         </div>
       </div>
 
@@ -134,23 +132,23 @@
     const eyebrow = c.querySelector('.auth-eyebrow');
     const h2 = c.querySelector('.auth-card h2');
     const lead = c.querySelector('.auth-lead');
-    const confirmField = c.querySelector('#lock-confirm-field');
+    const usernameInput = c.querySelector('#lock-username-input');
     const input = c.querySelector('#lock-password-input');
     const btn = c.querySelector('#btn-unlock');
     if (setup) {
       if (eyebrow) eyebrow.textContent = 'First-time setup';
       if (h2) h2.textContent = 'Secure your console.';
       if (lead) lead.textContent = 'Create the password that protects this Mine deployment. Anyone with the link sees this screen, so pick a strong one (8+ characters).';
-      if (confirmField) confirmField.hidden = false;
+      if (usernameInput) usernameInput.placeholder = 'Choose a username';
       if (input) { input.placeholder = 'Create a password'; input.autocomplete = 'new-password'; }
-      if (btn) btn.textContent = 'Create password & open';
+      if (btn) btn.textContent = 'Create account & open';
     } else {
       if (eyebrow) eyebrow.textContent = 'Locked console';
       if (h2) h2.textContent = 'Welcome back.';
-      if (lead) lead.textContent = 'Enter your password to open the Mine console.';
-      if (confirmField) confirmField.hidden = true;
+      if (lead) lead.textContent = 'Enter your username and password to open the Mine console.';
+      if (usernameInput) usernameInput.placeholder = 'Your username';
       if (input) { input.placeholder = 'Enter your password'; input.autocomplete = 'current-password'; }
-      if (btn) btn.textContent = 'Unlock console';
+      if (btn) btn.textContent = 'Sign in';
     }
   }
 
