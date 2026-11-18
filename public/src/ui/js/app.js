@@ -128,6 +128,12 @@ const A = {
     const provider = (document.getElementById('manual-provider-select') || {}).value;
     const label = ((document.getElementById('mk-label') || {}).value || '').trim();
 
+    if (provider === 'cloudflare-workers-ai') {
+      const accountId = ((document.getElementById('cloudflare-account-id') || {}).value || '').trim();
+      const configured = await window.vault.providers.configureCloudflare({ accountId });
+      if (!configured || !configured.success) { toast((configured && configured.error) || 'Could not configure Cloudflare Workers AI'); return; }
+    }
+
     const lines = raw
       .split(/[\n\r]+/)
       .map((l) => l.trim())
@@ -955,7 +961,14 @@ function populateManualProviderSelect() {
   const hidden = document.getElementById('manual-provider-select');
   if (!hidden) return;
   hidden.value = 'anthropic';
+  const account = document.getElementById('cloudflare-account-id');
+  if (account) account.value = '';
   updateSelectedProviderDisplay('anthropic');
+}
+
+function updateCloudflareAccountField(providerId) {
+  const group = document.getElementById('cloudflare-account-group');
+  if (group) group.hidden = providerId !== 'cloudflare-workers-ai';
 }
 
 function updateSelectedProviderDisplay(id) {
@@ -967,6 +980,7 @@ function updateSelectedProviderDisplay(id) {
     catEl.textContent = p ? p.cat || 'Custom' : 'Custom';
     catEl.className = 'chip ' + (p && p.free ? 'ok' : '');
   }
+  updateCloudflareAccountField(id);
 }
 
 function initSearchableProviderCombobox() {
