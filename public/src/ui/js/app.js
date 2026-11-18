@@ -1067,6 +1067,10 @@ document.addEventListener('change', async (e) => {
     A['toggle-key'](t);
     return;
   }
+  if (t.dataset.a && A[t.dataset.a]) {
+    A[t.dataset.a](t);
+    return;
+  }
 
   if (t.id === 'kf') {
     S.kf = t.value;
