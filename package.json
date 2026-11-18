@@ -1,0 +1,21 @@
+{
+  "name": "mine-vercel",
+  "version": "2.0.0",
+  "description": "Mine — hosted AI gateway, key manager, and model router (Vercel edition)",
+  "author": "Zohaib Asghar",
+  "homepage": "https://github.com/Zohaib154",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.9.0"
+  }
+}

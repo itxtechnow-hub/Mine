@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/check.js",
+  "outputDirectory": "public",
+  "functions": {
+    "api/gateway.js": { "maxDuration": 300, "memory": 1024 },
+    "api/rpc.js": { "maxDuration": 60, "memory": 1024 }
+  },
+  "rewrites": [
+    { "source": "/v1", "destination": "/api/gateway?__p=" },
+    { "source": "/v1/:path*", "destination": "/api/gateway?__p=:path*" },
+    { "source": "/health", "destination": "/api/gateway?__p=__health" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/(index.html)?",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}
