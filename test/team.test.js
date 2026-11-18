@@ -275,16 +275,15 @@ test('Team Leader receives executable spawn_subagent tool and queued tasks reach
       if (options.role === 'planner' && Array.isArray(options.tools)) {
         plannerToolSeen = options.tools.some((tool) => tool.function && tool.function.name === 'spawn_subagent');
         assert.match(options.messages[0].content, /Delegate independent work/);
+        const toolResult = options.messages.find((message) => message.role === 'tool');
+        if (toolResult) {
+          assert.match(toolResult.content, /Three verified facts were found/);
+          return { text: 'Plan accepted using the worker result.' };
+        }
         return { text: '', toolCalls: [{
           id: 'spawn-1', type: 'function',
           function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Find three reliable facts', specialty: 'research' }) },
         }] };
-      }
-      if (options.role === 'planner') {
-        const toolResult = options.messages.find((message) => message.role === 'tool');
-        assert.ok(toolResult);
-        assert.match(toolResult.content, /Three verified facts were found/);
-        return { text: 'Plan accepted using the worker result.' };
       }
       if (options.role === 'worker') {
         workerRuns += 1;
