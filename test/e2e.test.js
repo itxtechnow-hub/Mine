@@ -136,6 +136,16 @@ test('fresh deployment requires creating a password, then a session', async () =
   const right = await rpc('auth:verify', { username: 'mineowner', password: 'correct horse battery' });
   assert.strictEqual(right.result.success, true);
   assert.ok(cookie && cookie !== saved);
+
+  const rename = await rpc('auth:setPassword', {
+    username: 'mineadmin',
+    currentPassword: 'correct horse battery',
+  });
+  assert.strictEqual(rename.result.success, true);
+  st = await rpc('auth:getStatus');
+  assert.strictEqual(st.result.username, 'mineadmin');
+  const renamedLogin = await rpc('auth:verify', { username: 'mineadmin', password: 'correct horse battery' });
+  assert.strictEqual(renamedLogin.result.success, true);
 });
 
 test('auth hash never leaves the server', async () => {
