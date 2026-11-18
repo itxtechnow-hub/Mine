@@ -20,8 +20,11 @@ module.exports=async function mcp(req,res) {
   let state;
   try { state=await loadState(); } catch(err) { return send(res,500,{error:'Memory vault unavailable: '+err.message}); }
   if(ensureGatewayKey(state)) await saveState(state).catch(()=>{});
-  const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();
-  if(!token || !safeEqual(token,state.settings.gatewayApiKey)) return send(res,401,{error:'Valid Mine gateway bearer key required.'});
+  const bearer=String(req.headers.authorization||'').replace(/^Bearer\\s+/i,'').trim();
+  const headerKey=String(req.headers['x-api-key']||'').trim();
+  const queryKey=String(new URL(req.url||'/mcp','http://localhost').searchParams.get('apiKey')||'').trim();
+  const token=bearer||headerKey||queryKey;
+  if(!token || !safeEqual(token,state.settings.gatewayApiKey)) return send(res,401,{error:'Valid Mine gateway API key required. Use Authorization: Bearer, X-API-Key, or apiKey query parameter.'});
   let body;
   try { const buf=await rawBody(req,1024*1024); body=buf.length?JSON.parse(buf.toString('utf8')):{}; }
   catch(_) { return send(res,400,{error:'Invalid JSON-RPC request'}); }
