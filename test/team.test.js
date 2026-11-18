@@ -437,3 +437,75 @@ test('Team can route worker results directly to an agent when synthesizer is rem
   assert.ok(agentSawWorkerResult);
   assert.match(result.final, /directly by the agent/);
 });
+
+
+test('parallel subagents rotate across worker templates and preserve assigned models', async () => {
+  const observed = [];
+  const team = {
+    id: 'distinct-model-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'worker-a', type: 'worker', model: 'provider/model-a', specialty: 'general' },
+      { id: 'worker-b', type: 'worker', model: 'provider/model-b', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Do two independent subtasks', {
+    models: ['provider/leader', 'provider/model-a', 'provider/model-b', 'provider/synth'].map((id) => ({ id })),
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        return { text: '', toolCalls: [
+          { id: 'a', type: 'function', function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Research the first topic', specialty: 'general' }) } },
+          { id: 'b', type: 'function', function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Analyze the second topic', specialty: 'general' }) } },
+        ] };
+      }
+      if (options.role === 'worker') {
+        observed.push({ modelId, prompt });
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        return { text: 'Finding from ' + modelId };
+      }
+      if (options.role === 'synthesizer') return { text: 'Both distinct findings combined.' };
+      return { text: 'unexpected' };
+    },
+  });
+  assert.deepStrictEqual(observed.map((item) => item.modelId).sort(), ['provider/model-a', 'provider/model-b']);
+  assert.ok(observed.some((item) => item.prompt.includes('Research the first topic')));
+  assert.ok(observed.some((item) => item.prompt.includes('Analyze the second topic')));
+  assert.strictEqual(result.nodes.length, 2);
+  assert.strictEqual(new Set(result.nodes.map((item) => item.delegateId)).size, 2);
+});
+
+test('Team Leader rejects the entire original prompt as a worker task', async () => {
+  const prompt = 'Create two independent subagents. Worker A research AI agents. Worker B explain tool calling.';
+  let workerRuns = 0;
+  const team = {
+    id: 'reject-whole-prompt-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, prompt, {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }],
+    modelQueue: [],
+    callModel: async (modelId, _prompt, options) => {
+      if (options.role === 'planner') {
+        const toolMessages = options.messages.filter((message) => message.role === 'tool');
+        if (toolMessages.length) return { text: 'I will split the task correctly.' };
+        return { text: '', toolCalls: [{
+          id: 'whole-prompt',
+          type: 'function',
+          function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: prompt, specialty: 'general' }) },
+        }] };
+      }
+      if (options.role === 'worker') workerRuns += 1;
+      return { text: 'unexpected' };
+    },
+  });
+  assert.strictEqual(workerRuns, 0);
+  assert.strictEqual(result.status, 'failed');
+  assert.match(result.final, /did not create any subagents/i);
+});
