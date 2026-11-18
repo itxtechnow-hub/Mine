@@ -335,12 +335,12 @@ const A = {
     const btn = document.getElementById('btn-fetch-models');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Scanning…';
+      btn.textContent = 'Refreshing…';
     }
     const res = await window.vault.models.fetchFromKeys();
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Scan Enabled APIs';
+      btn.textContent = 'Refresh Models';
     }
     if (!res.success && !res.count) {
       toast(res.error || 'Nothing to scan');
@@ -357,7 +357,7 @@ const A = {
     S.models = (res.models || []).map((m) => ({ ...m, pin: favoriteIds.has(m.id) ? 1 : 0 }));
     await window.vault.store.set('pinnedModels', S.models.filter((m) => m.pin).map((m) => m.id));
     await syncModelQueue();
-    toast(res.count + ' models discovered');
+    toast(res.count + ' models in saved catalog · ' + ((res.refreshedProviders || []).length) + ' providers refreshed');
     render();
   },
 
