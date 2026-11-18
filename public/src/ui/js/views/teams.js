@@ -1691,6 +1691,7 @@ window.A = window.A || {};
     const team = (window.S && window.S.teams || []).find((item) => item.id === id);
     const prompt = document.getElementById('team-run-prompt-' + id);
     const feed = document.getElementById('team-live-feed-' + id);
+    const timerLabel = document.getElementById('team-run-timer-' + id);
     if (!team || !prompt || !feed || !prompt.value.trim()) return;
     const keyResult = await window.vault.gateway.revealKey();
     if (!keyResult || !keyResult.key) { feed.textContent = 'Gateway key unavailable.'; return; }
@@ -1732,7 +1733,7 @@ window.A = window.A || {};
               feed.textContent += '\n[' + item.nodeId + '] ' + item.modelId + ' — STARTED\n';
               timers.set(item.delegateId, setInterval(() => {
                 const elapsed = Math.floor((Date.now() - started.get(item.delegateId)) / 1000);
-                feed.dataset.elapsed = item.nodeId + ': ' + elapsed + 's';
+                if (timerLabel) timerLabel.textContent = 'Active: ' + item.nodeId + ' ' + elapsed + 's';
               }, 1000));
             } else if (type === 'delegate.delta') {
               feed.textContent += item.text || '';
@@ -1800,7 +1801,7 @@ window.A = window.A || {};
                 <div style="margin-top:12px;display:grid;gap:7px">
                   <textarea class="input" id="team-run-prompt-${escapeAttr(t.id)}" rows="2" placeholder="Run a task directly on this Team…"></textarea>
                   <div class="row" style="justify-content:space-between;align-items:center"><span class="mute" style="font-size:11px">Live delegates · parallel streams · token usage</span><button class="btn sm primary" data-a="run-team-direct" data-id="${escapeAttr(t.id)}">Run Team</button></div>
-                  <pre id="team-live-feed-${escapeAttr(t.id)}" class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;font-size:11px;padding:8px;background:var(--sf);border-radius:8px"></pre>
+                  <span id="team-run-timer-${escapeAttr(t.id)}" class="mute" style="font-size:10px"></span><pre id="team-live-feed-${escapeAttr(t.id)}" class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;font-size:11px;padding:8px;background:var(--sf);border-radius:8px"></pre>
                 </div>
               </div>
             `).join('') : '<div class="empty">No teams yet. Create one to orchestrate multiple models.</div>'}
