@@ -1709,23 +1709,125 @@ window.A = window.A || {};
     const id = el && el.dataset && el.dataset.id;
     const team = (window.S && window.S.teams || []).find((item) => item.id === id);
     const prompt = document.getElementById('team-run-prompt-' + id);
-    const feed = document.getElementById('team-live-feed-' + id);
+    const panel = document.getElementById('team-live-feed-' + id);
     const timerLabel = document.getElementById('team-run-timer-' + id);
-    if (!team || !prompt || !feed || !prompt.value.trim()) return;
+    if (!team || !prompt || !panel || !prompt.value.trim()) return;
+
     const keyResult = await window.vault.gateway.revealKey();
-    if (!keyResult || !keyResult.key) { feed.textContent = 'Gateway key unavailable.'; return; }
+    if (!keyResult || !keyResult.key) {
+      panel.textContent = 'Gateway key unavailable. Check Settings.';
+      return;
+    }
+
+    const userPrompt = prompt.value.trim();
+    const delegates = new Map();
+    const startedAt = new Map();
+    let finalText = '';
+    let activeTimer = null;
+    const esc = (value) => String(value == null ? '' : value);
+    const make = (tag, cls, value) => {
+      const node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (value != null) node.textContent = value;
+      return node;
+    };
+    const statusText = (status) => status === 'completed' ? 'Completed' : status === 'failed' ? 'Failed' : status === 'waiting' ? 'Waiting' : 'Working';
+    const statusClass = (status) => status === 'completed' ? 'done' : status === 'failed' ? 'failed' : status === 'waiting' ? 'waiting' : 'working';
+
+    panel.replaceChildren();
+    panel.classList.add('has-run');
+    const chat = make('div', 'subagent-chat');
+    const userBubble = make('div', 'subagent-chat-user');
+    userBubble.append(make('span', 'subagent-chat-label', 'YOU'));
+    userBubble.append(make('p', '', userPrompt));
+    chat.append(userBubble);
+
+    const leader = make('section', 'subagent-leader');
+    const leaderHead = make('div', 'subagent-section-head');
+    leaderHead.append(make('strong', '', 'Team Leader'));
+    const leaderStatus = make('span', 'subagent-status working', 'Planning');
+    leaderHead.append(leaderStatus);
+    leader.append(leaderHead);
+    leader.append(make('p', 'subagent-muted', 'Breaking the request into tasks and coordinating workers…'));
+    chat.append(leader);
+
+    const workerSection = make('section', 'subagent-workers');
+    const workerHeading = make('div', 'subagent-section-head');
+    workerHeading.append(make('strong', '', 'Subagents'));
+    const workerCount = make('span', 'subagent-muted', '0 workers');
+    workerHeading.append(workerCount);
+    workerSection.append(workerHeading);
+    const workerList = make('div', 'subagent-worker-list');
+    workerSection.append(workerList);
+    chat.append(workerSection);
+
+    const finalBox = make('section', 'subagent-final');
+    finalBox.append(make('div', 'subagent-chat-label', 'MINE RESPONSE'));
+    const finalBody = make('div', 'subagent-final-body', 'Waiting for workers to finish and the leader to synthesize their results…');
+    finalBox.append(finalBody);
+    chat.append(finalBox);
+    panel.append(chat);
+
+    function updateCounts() {
+      const values = Array.from(delegates.values());
+      const active = values.filter((d) => d.status === 'working').length;
+      const done = values.filter((d) => d.status === 'completed').length;
+      const failed = values.filter((d) => d.status === 'failed').length;
+      workerCount.textContent = values.length + ' workers · ' + active + ' active · ' + done + ' done' + (failed ? ' · ' + failed + ' failed' : '');
+    }
+    function getDelegate(item) {
+      let card = delegates.get(item.delegateId);
+      if (card) return card;
+      const details = make('details', 'subagent-worker-card');
+      details.open = true;
+      const summary = make('summary', 'subagent-worker-summary');
+      const identity = make('div', 'subagent-worker-identity');
+      const name = make('strong', '', item.specialty || item.nodeId || 'Worker');
+      const task = make('span', 'subagent-task', item.task || 'Assigned task');
+      identity.append(name, task);
+      const status = make('span', 'subagent-status working', 'Working');
+      summary.append(identity, status);
+      details.append(summary);
+      const meta = make('div', 'subagent-worker-meta', [item.nodeId, item.modelId].filter(Boolean).join(' · '));
+      details.append(meta);
+      const log = make('div', 'subagent-worker-log');
+      log.append(make('div', 'subagent-log-line', 'Worker created and task assigned.'));
+      details.append(log);
+      workerList.append(details);
+      card = { details, name, task, status, meta, log, toolRows: new Map() };
+      delegates.set(item.delegateId, card);
+      updateCounts();
+      return card;
+    }
+    function addLog(card, message) {
+      card.log.append(make('div', 'subagent-log-line', message));
+      card.log.scrollTop = card.log.scrollHeight;
+    }
+    function setStatus(card, status, extra) {
+      card.status.className = 'subagent-status ' + statusClass(status);
+      card.status.textContent = statusText(status) + (extra ? ' · ' + extra : '');
+    }
+    function updateElapsed() {
+      const now = Date.now();
+      for (const [delegateId, card] of delegates) {
+        if (card.status.classList.contains('working') && startedAt.has(delegateId)) {
+          card.status.textContent = 'Working · ' + Math.floor((now - startedAt.get(delegateId)) / 1000) + 's';
+        }
+      }
+    }
+
     el.disabled = true;
     el.textContent = 'Running…';
-    feed.textContent = 'Starting Team run…\n';
-    const started = new Map();
-    const timers = new Map();
+    if (timerLabel) timerLabel.textContent = 'Starting live team run…';
+    activeTimer = setInterval(updateElapsed, 1000);
     try {
       const response = await fetch('/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + keyResult.key, 'X-Mine-Client': 'team-ui' },
-        body: JSON.stringify({ model: 'mine/team/' + (team.slug || team.id), messages: [{ role: 'user', content: prompt.value.trim() }], stream: true })
+        body: JSON.stringify({ model: 'mine/team/' + (team.slug || team.id), messages: [{ role: 'user', content: userPrompt }], stream: true })
       });
       if (!response.ok || !response.body) throw new Error('Gateway HTTP ' + response.status + ': ' + (await response.text()).slice(0, 200));
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -1741,47 +1843,56 @@ window.A = window.A || {};
           frame.split('\n').forEach((line) => {
             if (line.startsWith('event:')) eventName = line.slice(6).trim();
             if (line.startsWith('data:')) data += line.slice(5).trim();
-            // Team metadata travels as SSE comments so OpenAI SDKs ignore it.
             if (line.startsWith(': mine.progress ')) { eventName = 'mine.progress'; data += line.slice(16).trim(); }
             if (line.startsWith(': mine.final ')) { eventName = 'mine.final'; data += line.slice(13).trim(); }
           });
           if (!data || data === '[DONE]') continue;
           let item;
           try { item = JSON.parse(data); } catch (_) { continue; }
+
           if (eventName === 'mine.progress') {
             const type = item.type || '';
             if (type === 'delegate.started') {
-              started.set(item.delegateId, Date.now());
-              feed.textContent += '\n[' + item.nodeId + '] ' + item.modelId + ' — STARTED\n';
-              timers.set(item.delegateId, setInterval(() => {
-                const elapsed = Math.floor((Date.now() - started.get(item.delegateId)) / 1000);
-                if (timerLabel) timerLabel.textContent = 'Active: ' + item.nodeId + ' ' + elapsed + 's';
-              }, 1000));
-            } else if (type === 'delegate.delta') {
-              feed.textContent += item.text || '';
-              feed.scrollTop = feed.scrollHeight;
-            } else if (type === 'delegate.usage') {
-              feed.textContent += '\n[' + item.nodeId + '] tokens: ' + item.promptTokens + ' in / ' + item.completionTokens + ' out / ' + item.totalTokens + ' total' + (item.estimated ? ' (estimated)' : '') + '\n';
+              startedAt.set(item.delegateId, Date.now());
+              const card = getDelegate(item);
+              card.name.textContent = item.specialty || item.nodeId || 'Subagent';
+              card.task.textContent = item.task || 'Working on assigned task';
+              card.meta.textContent = [item.nodeId, item.modelId].filter(Boolean).join(' · ');
+              setStatus(card, 'working');
+              addLog(card, 'Started: ' + (item.task || 'Assigned task'));
+              if (item.nodeId && /plan/i.test(item.delegateId || '')) leaderStatus.textContent = 'Planning';
+              else leaderStatus.textContent = 'Delegating';
+            } else if (type === 'tool.started' || type === 'tool.completed' || type === 'tool.failed') {
+              const card = Array.from(delegates.values()).find((d) => d.meta.textContent.startsWith(item.nodeId || ''));
+              if (card) addLog(card, (type === 'tool.started' ? 'Using tool: ' : type === 'tool.completed' ? 'Tool completed: ' : 'Tool failed: ') + esc(item.tool || 'tool') + (item.error ? ' — ' + item.error : ''));
             } else if (type === 'delegate.completed' || type === 'delegate.failed') {
-              const timer = timers.get(item.delegateId);
-              if (timer) clearInterval(timer);
-              timers.delete(item.delegateId);
-              const elapsed = started.has(item.delegateId) ? Math.floor((Date.now() - started.get(item.delegateId)) / 1000) : 0;
-              feed.textContent += '\n[' + item.nodeId + '] ' + (type === 'delegate.completed' ? 'COMPLETED' : 'FAILED') + ' · ' + elapsed + 's' + (item.error ? ' · ' + item.error : '') + '\n';
+              const card = getDelegate(item);
+              const elapsed = startedAt.has(item.delegateId) ? Math.floor((Date.now() - startedAt.get(item.delegateId)) / 1000) + 's' : '';
+              setStatus(card, type === 'delegate.completed' ? 'completed' : 'failed', elapsed);
+              addLog(card, type === 'delegate.completed' ? 'Task completed.' : 'Task failed: ' + (item.error || 'Worker failed'));
+              updateCounts();
+            } else if (type === 'run.completed') {
+              leaderStatus.className = 'subagent-status done';
+              leaderStatus.textContent = 'Synthesis complete';
+              if (timerLabel) timerLabel.textContent = 'Run complete · ' + (item.totalTokens || 0) + ' tokens';
             }
-            feed.scrollTop = feed.scrollHeight;
           } else if (eventName === 'mine.final') {
-            feed.textContent += '\nTEAM TOTAL: ' + (item.totalTokens || 0) + ' tokens\n';
+            if (timerLabel) timerLabel.textContent = 'Team usage · ' + (item.totalTokens || 0) + ' tokens';
           } else if (item.choices && item.choices[0] && item.choices[0].delta && item.choices[0].delta.content) {
-            feed.textContent += '\n\nFINAL ANSWER\n' + item.choices[0].delta.content;
+            finalText += item.choices[0].delta.content;
+            finalBody.textContent = finalText;
           }
         }
       }
-      feed.textContent += '\n\nRun stream closed.';
+      if (!finalText) finalBody.textContent = 'The team run ended without a final response.';
+      leaderStatus.className = 'subagent-status done';
+      if (leaderStatus.textContent === 'Planning' || leaderStatus.textContent === 'Delegating') leaderStatus.textContent = 'Finished';
     } catch (error) {
-      feed.textContent += '\nERROR: ' + error.message;
+      leaderStatus.className = 'subagent-status failed';
+      leaderStatus.textContent = 'Run failed';
+      finalBody.textContent = 'Could not complete this team run: ' + error.message;
     } finally {
-      timers.forEach((timer) => clearInterval(timer));
+      if (activeTimer) clearInterval(activeTimer);
       el.disabled = false;
       el.textContent = 'Run Team';
     }
@@ -1823,7 +1934,7 @@ window.A = window.A || {};
                 <div style="margin-top:12px;display:grid;gap:7px">
                   <textarea class="input" id="team-run-prompt-${escapeAttr(t.id)}" rows="2" placeholder="Run a task directly on this Team…"></textarea>
                   <div class="row" style="justify-content:space-between;align-items:center"><span class="mute" style="font-size:11px">Live delegates · parallel streams · token usage</span><button class="btn sm primary" data-a="run-team-direct" data-id="${escapeAttr(t.id)}">Run Team</button></div>
-                  <span id="team-run-timer-${escapeAttr(t.id)}" class="mute" style="font-size:10px"></span><pre id="team-live-feed-${escapeAttr(t.id)}" class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;font-size:11px;padding:8px;background:var(--sf);border-radius:8px"></pre>
+                  <span id="team-run-timer-${escapeAttr(t.id)}" class="mute" style="font-size:10px"></span><div id="team-live-feed-${escapeAttr(t.id)}" class="subagent-chat-shell" aria-live="polite"><div class="subagent-empty">Run this team to watch the leader create and coordinate live subagents.</div></div>
                 </div>
               </div>
             `).join('') : '<div class="empty">No teams yet. Create one to orchestrate multiple models.</div>'}
