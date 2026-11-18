@@ -370,6 +370,8 @@ test('gateway diagnostics expose provider and agent health without secrets', asy
   assert.strictEqual(provider.keys.cooldown, 1);
   assert.strictEqual(response.result.mcp.outboundClient.available, false);
   assert.strictEqual(response.result.tools.workspace.available, false);
+  assert.strictEqual(response.result.tools.builtIn.available, true);
+  assert.ok(response.result.tools.builtIn.names.includes('calculator'));
   const serialized = JSON.stringify(response.result);
   assert.ok(!serialized.includes('team-key-limited'));
   assert.ok(!serialized.includes('team-key-good'));
