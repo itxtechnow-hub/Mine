@@ -651,6 +651,7 @@ const A = {
 
   'change-password': async () => {
     const cur = (document.getElementById('cur-pwd') || {}).value || '';
+    const username = (document.getElementById('account-username') || {}).value.trim();
     const np = (document.getElementById('change-pwd') || {}).value || '';
     const confirmPw = (document.getElementById('change-confirm-pwd') || {}).value || '';
     if (!np) {
@@ -668,7 +669,7 @@ const A = {
       toast('Passwords do not match');
       return;
     }
-    const res = await window.vault.auth.setPassword({ currentPassword: cur, newPassword: np });
+    const res = await window.vault.auth.setPassword({ username, currentPassword: cur, newPassword: np });
     if (res.success) {
       toast('Password updated');
       S.auth = await window.vault.auth.getStatus();
