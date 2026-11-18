@@ -23,12 +23,13 @@ window.A = window.A || {};
     return data;
   }
   function recordCard(r) {
-    return '<article class="card" style="padding:14px;margin:0 0 10px">' +
-      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
-      '<div style="min-width:0"><b>'+esc(r.title)+'</b><div class="mute" style="font-size:11px;margin-top:4px">'+esc(r.scope)+' · '+esc(r.format)+' · '+esc(new Date(r.updatedAt).toLocaleString())+'</div></div>' +
-      '<div class="row"><button class="btn sm" data-a="memory-edit" data-id="'+esc(r.id)+'">Edit</button><button class="btn sm danger" data-a="memory-delete" data-id="'+esc(r.id)+'">Delete</button></div></div>' +
+    return '<details class="card memory-record" style="padding:10px;margin:0 0 8px">' +
+      '<summary style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;list-style:none">' +
+      '<span style="min-width:0;flex:1"><b>'+esc(r.title)+'</b><span class="mute" style="display:block;font-size:10px;margin-top:3px">'+esc(r.scope)+' · '+esc(r.format)+' · '+esc(new Date(r.updatedAt).toLocaleDateString())+'</span></span>' +
+      '<span class="chip">'+esc((r.tags||[]).slice(0,2).join(', ') || 'Memory')+'</span></summary>' +
+      '<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px"><button class="btn sm" data-a="memory-edit" data-id="'+esc(r.id)+'">Edit</button><button class="btn sm danger" data-a="memory-delete" data-id="'+esc(r.id)+'">Delete</button></div>' +
       '<p class="mute" style="font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 0">'+esc(r.content || '').slice(0,500)+'</p>' +
-      '<div class="mute mono" style="font-size:10px;margin-top:8px">ID: '+esc(r.id)+'</div></article>';
+      '<div class="mute mono" style="font-size:10px;margin-top:8px">ID: '+esc(r.id)+'</div></details>';
   }
   function render() {
     if (!data) {
@@ -44,6 +45,9 @@ window.A = window.A || {};
     const edit = selected || { title:'',content:'',format:'markdown',scope:'shared',tags:[] };
     return '<div class="view">' +
       '<div class="view-head"><div><h2>Mine Cloud Memory</h2><p class="sub">Encrypted persistent memory shared by your Mine workspace and connected MCP clients.</p></div><button class="btn primary" data-a="memory-new">+ New memory</button></div>' +
+      '<details class="card" style="margin-bottom:14px" open><summary style="cursor:pointer;font-weight:700">Installed MCP servers ('+(data.mcpServers||[]).length+') <span class="mute" style="font-weight:400">· manage availability</span></summary>' +
+      ((data.mcpServers||[]).length ? (data.mcpServers||[]).map(server=>'<label class="set"><span><b>'+esc(server.name||server.serverName||server.id)+'</b><br><span class="mute">'+esc(server.teamName||server.teamId||'Mine Team')+' · '+esc(server.tools||'MCP tools')+'</span></span><input type="checkbox" data-a="memory-server-toggle" data-id="'+esc(server.id)+'" '+(server.enabled!==false?'checked':'')+'></label>').join('') : '<p class="mute">No MCP servers have been added through a Team flow yet. Add an MCP node in the Team editor and save it to register it here.</p>') +
+      '</details>' +
       '<section class="card" style="margin-bottom:14px"><h3>Per-model permissions</h3><p class="mute">Override workspace defaults for each discovered model. Private memory is still isolated by model ID.</p>' +
       '<div class="field-row"><label>Model</label><select class="input" id="memory-model-select">'+(modelIds.length?modelIds.map(id=>'<option value="'+esc(id)+'" '+(id===selectedModel?'selected':'')+'>'+esc(id)+'</option>').join(''):'<option value="">No discovered models yet</option>')+'</select></div>' +
       (selectedModel ? ['read','write','update'].map(k=>'<label class="set"><span><b>'+k[0].toUpperCase()+k.slice(1)+'</b><br><span class="mute">Override default for '+esc(selectedModel)+'</span></span><input type="checkbox" data-a="memory-model-permission" data-perm="'+k+'" '+((modelPerm[k]===undefined?p[k]!==false:modelPerm[k]!==false)?'checked':'')+'></label>').join('') : '<p class="mute">Add API keys and refresh Models to configure per-model access.</p>') +
@@ -111,6 +115,12 @@ window.A = window.A || {};
       window.render();
     }
   });
+  window.A['memory-server-toggle'] = async (el) => {
+    const servers=(data.mcpServers||[]).map(server=>server.id===el.dataset.id?{...server,enabled:el.checked}:server);
+    const r=await window.vault.cloudMemory.setServers(servers);
+    if(r&&r.success){data.mcpServers=r.mcpServers||servers;toast(el.checked?'MCP server enabled':'MCP server disabled');}
+    else {el.checked=!el.checked;toast((r&&r.error)||'Could not update MCP server');}
+  };
   window.A['memory-model-permission'] = async (el) => {
     const modelId = window.S && window.S.cloudMemorySelectedModel || '';
     if (!modelId) return;
