@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { test } = require('node:test');
-const { runTeam } = require('../lib/gateway/team');
+const { runTeam, validateTeam } = require('../lib/gateway/team');
 
 test('Team worker delegates execute concurrently and emit independent lifecycle events', async () => {
   let active = 0;
@@ -396,4 +396,44 @@ test('Team Leader fails closed when planner does not invoke spawn_subagent', asy
   assert.match(result.final, /did not create any subagents/i);
   assert.strictEqual(result.nodes.length, 0);
   assert.ok(events.some((event) => event.type === 'run.failed'));
+});
+
+
+test('Team can route worker results directly to an agent when synthesizer is removed', async () => {
+  const team = {
+    id: 'direct-agent-team',
+    name: 'Direct agent team',
+    slug: 'direct-agent-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'research' },
+      { id: 'agent-final', type: 'agent', model: 'provider/agent', systemPrompt: 'Finalize the team answer.' },
+    ],
+    connections: [{ from: 'worker', to: 'agent-final', tp: 'main' }],
+  };
+  assert.deepStrictEqual(validateTeam(team), []);
+  let agentSawWorkerResult = false;
+  const result = await runTeam(team, 'Research this topic', {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/agent' }],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        return { text: '', toolCalls: [{
+          id: 'spawn-direct',
+          type: 'function',
+          function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Find reliable facts', specialty: 'research' }) },
+        }] };
+      }
+      if (options.role === 'worker') return { text: 'Worker result: three reliable facts.' };
+      if (options.role === 'synthesizer') {
+        assert.strictEqual(modelId, 'provider/agent');
+        assert.match(prompt, /three reliable facts/);
+        agentSawWorkerResult = true;
+        return { text: 'Final answer produced directly by the agent.' };
+      }
+      return { text: 'Unexpected model role.' };
+    },
+  });
+  assert.ok(agentSawWorkerResult);
+  assert.match(result.final, /directly by the agent/);
 });
