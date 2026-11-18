@@ -293,6 +293,15 @@
       remove: safe('teams:remove', fail),
     },
 
+    cloudMemory: {
+      get: safe('cloudMemory:get', fail),
+      save: safe('cloudMemory:save', fail),
+      delete: safe('cloudMemory:delete', fail),
+      approveDelete: safe('cloudMemory:approveDelete', fail),
+      setPermissions: safe('cloudMemory:setPermissions', fail),
+      setServers: safe('cloudMemory:setServers', fail),
+    },
+
     on: (channel, callback) => {
       if (typeof callback !== 'function') return;
       if (!listeners.has(channel)) listeners.set(channel, new Set());
