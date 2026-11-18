@@ -134,3 +134,86 @@ test('Team worker concurrency respects the configured per-run limit', async () =
   assert.strictEqual(maximumActive, 2);
   assert.match(result.final, /Five worker findings/);
 });
+
+
+test('planner can spawn bounded ephemeral delegates from one worker template', async () => {
+  const workerCalls = [];
+  const team = {
+    id: 'dynamic-team',
+    nodes: [
+      { id: 'planner', type: 'planner', model: 'provider/planner' },
+      { id: 'worker-template', type: 'worker', model: 'provider/worker', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Split this into subtasks', {
+    settings: { teamMaxDelegates: 3, teamConcurrency: 2 },
+    models: [{ id: 'provider/planner' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        return { text: JSON.stringify([
+          { part: 'Research part A', specialty: 'general' },
+          { part: 'Research part B', specialty: 'general' },
+          { part: 'Research part C', specialty: 'general' },
+          { part: 'This fourth task must be capped', specialty: 'general' },
+        ]) };
+      }
+      if (options.role === 'worker') {
+        workerCalls.push({ nodeId: options.nodeId, delegateId: options.delegateId, prompt });
+        return { text: 'Completed: ' + prompt };
+      }
+      return { text: 'Combined three delegate findings.' };
+    },
+  });
+  assert.strictEqual(workerCalls.length, 3);
+  assert.strictEqual(new Set(workerCalls.map((call) => call.delegateId)).size, 3);
+  assert.ok(workerCalls.every((call) => call.nodeId === 'worker-template'));
+  assert.strictEqual(result.nodes.length, 3);
+  assert.deepStrictEqual(result.nodes.map((node) => node.taskIndex), [1, 2, 3]);
+});
+
+test('worker can execute enabled calculator tools and use the result', async () => {
+  const events = [];
+  const team = {
+    id: 'tool-team',
+    nodes: [
+      { id: 'planner', type: 'planner', model: 'provider/planner' },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+      { id: 'tools', type: 'tool', enabledTools: ['calculator'] },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Calculate twelve times seven', {
+    models: [{ id: 'provider/planner' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    onEvent: (event) => events.push(event),
+    memoryState: {},
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') return { text: '[{"part":"Calculate 12 * 7","specialty":"general"}]' };
+      if (options.role === 'worker' && Array.isArray(options.tools)) {
+        const last = options.messages[options.messages.length - 1];
+        if (last.role === 'user') {
+          return {
+            text: '',
+            toolCalls: [{
+              id: 'calc-call-1',
+              type: 'function',
+              function: { name: 'calculator', arguments: JSON.stringify({ expression: '12 * 7' }) },
+            }],
+          };
+        }
+        assert.strictEqual(last.role, 'tool');
+        assert.match(last.content, /84/);
+        return { text: '12 times 7 equals 84.' };
+      }
+      if (options.role === 'worker') return { text: 'Worker did not receive tool definitions.' };
+      return { text: 'The answer is 84.' };
+    },
+  });
+  assert.match(result.final, /84/);
+  assert.ok(events.some((event) => event.type === 'tool.started' && event.tool === 'calculator'));
+  assert.ok(events.some((event) => event.type === 'tool.completed' && event.tool === 'calculator'));
+});
