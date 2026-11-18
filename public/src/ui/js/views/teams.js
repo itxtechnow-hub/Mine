@@ -1722,6 +1722,9 @@ window.A = window.A || {};
           frame.split('\n').forEach((line) => {
             if (line.startsWith('event:')) eventName = line.slice(6).trim();
             if (line.startsWith('data:')) data += line.slice(5).trim();
+            // Team metadata travels as SSE comments so OpenAI SDKs ignore it.
+            if (line.startsWith(': mine.progress ')) { eventName = 'mine.progress'; data += line.slice(16).trim(); }
+            if (line.startsWith(': mine.final ')) { eventName = 'mine.final'; data += line.slice(13).trim(); }
           });
           if (!data || data === '[DONE]') continue;
           let item;
