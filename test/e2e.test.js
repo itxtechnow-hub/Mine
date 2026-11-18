@@ -290,6 +290,9 @@ test('teams run through the gateway', async () => {
   assert.strictEqual(res.status, 200);
   const j = await res.json();
   assert.strictEqual(j.choices[0].message.content, 'echo:good-model');
+  assert.ok(Array.isArray(j.mine.nodes));
+  assert.ok(j.mine.nodes.every((node) => !Object.prototype.hasOwnProperty.call(node, 'text')));
+  assert.ok(!JSON.stringify(j.mine).includes('echo:good-model'), 'worker transcripts are not exposed in metadata');
 });
 
 test('team delegates rotate keys after a 429 instead of failing the worker', async () => {
