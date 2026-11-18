@@ -155,6 +155,25 @@ const A = {
     render();
   },
 
+  'replace-key': async (el) => {
+    const id = el.dataset.id;
+    const key = S.keys.find((k) => k.id === id);
+    if (!key) return;
+    const replacement = window.prompt('Paste the replacement API key for ' + (key.label || key.provider) + '. Provider and settings will stay unchanged:', '');
+    if (replacement === null) return;
+    if (!replacement.trim()) { toast('Enter a replacement API key'); return; }
+    const res = await window.vault.keys.replace(id, replacement.trim());
+    if (!res || !res.success) { toast((res && res.error) || 'Could not replace API key'); return; }
+    const updated = S.keys.find((k) => k.id === id);
+    if (updated) Object.assign(updated, res.key);
+    toast('Key replaced. Checking it now…');
+    const test = await window.vault.gateway.testKey({ key: replacement.trim(), provider: updated.provider });
+    if (test.success) { updated.status = 'ACTIVE'; updated.lastError = null; updated.lastLatency = test.latency; toast('Replacement key works · ' + test.latency + ' ms'); }
+    else { updated.status = 'DEAD'; updated.lastError = test.error || 'Key validation failed'; toast('Key saved, but validation failed: ' + updated.lastError); }
+    await window.vault.store.set('keys', S.keys);
+    render();
+  },
+
   'toggle-key': async (el) => {
     const id = el.dataset.id;
     const key = S.keys.find((k) => k.id === id);
