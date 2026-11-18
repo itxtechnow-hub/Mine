@@ -13,6 +13,7 @@ const required = [
   'public/index.html',
   'public/src/ui/js/lib/web-bridge.js',
   'public/src/ui/js/app.js',
+  'public/src/ui/js/views/memory.js',
   'public/assets/mine_icon.png',
 ];
 for (const f of required) {
@@ -22,7 +23,7 @@ for (const f of required) {
   }
 }
 
-for (const m of ['api/rpc.js', 'api/gateway.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js']) {
+for (const m of ['api/rpc.js', 'api/gateway.js', 'api/mcp.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js', 'lib/cloud-memory.js']) {
   require(path.join(root, m));
 }
 
