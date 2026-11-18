@@ -16,6 +16,13 @@ const { safeEqual } = require('../lib/gateway/http-util');
 const { selectBestUntried } = require('../lib/gateway/key-rotation');
 const { createGateway } = require('../lib/gateway/server');
 
+test('Gemini REST resource model IDs are normalized for the OpenAI-compatible API', () => {
+  const { normalizeUpstreamModel } = require('../lib/gateway/providers');
+  assert.strictEqual(normalizeUpstreamModel('models/gemini-2.5-flash', 'gemini'), 'gemini-2.5-flash');
+  assert.strictEqual(normalizeUpstreamModel('gemini-2.5-flash', 'google'), 'gemini-2.5-flash');
+  assert.strictEqual(normalizeUpstreamModel('models/llama-3', 'openrouter'), 'models/llama-3');
+});
+
 test('resolveUpstreamUrl preserves the provider base path', () => {
   const cases = [
     ['https://openrouter.ai/api/v1', '/v1/chat/completions', 'https://openrouter.ai/api/v1/chat/completions'],
