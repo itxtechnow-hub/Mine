@@ -103,3 +103,34 @@ test('Team with failed synthesis fails closed instead of returning raw worker te
   assert.match(result.final, /withholding the raw worker output/i);
   assert.doesNotMatch(result.final, /PRIVATE RAW WORKER TRANSCRIPT|provider details/);
 });
+
+
+test('Team worker concurrency respects the configured per-run limit', async () => {
+  let active = 0;
+  let maximumActive = 0;
+  const team = {
+    id: 'bounded-team',
+    nodes: Array.from({ length: 5 }, (_, index) => ({
+      id: 'worker-' + index,
+      type: 'worker',
+      model: 'provider/model',
+      specialty: 'general',
+    })),
+    connections: [],
+  };
+  const result = await runTeam(team, 'Run five independent tasks', {
+    settings: { teamConcurrency: 2 },
+    models: [{ id: 'provider/model' }],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'synthesizer') return { text: 'Five worker findings were combined.' };
+      active += 1;
+      maximumActive = Math.max(maximumActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      active -= 1;
+      return { text: 'Worker finding ' + options.nodeId };
+    },
+  });
+  assert.strictEqual(maximumActive, 2);
+  assert.match(result.final, /Five worker findings/);
+});
