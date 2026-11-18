@@ -39,9 +39,11 @@ if (!process.env.MINE_SECRET) {
   console.log('[mine] tip: set MINE_SECRET to a long random string so the vault key never depends on a storage token.');
 }
 void storage;
-const memoryTests = spawnSync(process.execPath, ['--test', path.join(root, 'test/cloud-memory.test.js')], { stdio: 'inherit' });
-if (memoryTests.status !== 0) {
-  console.error('[mine] Cloud Memory tests failed');
-  process.exit(memoryTests.status || 1);
+for (const testFile of ['test/cloud-memory.test.js', 'test/gateway.test.js']) {
+  const result = spawnSync(process.execPath, ['--test', path.join(root, testFile)], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    console.error('[mine] Tests failed:', testFile);
+    process.exit(result.status || 1);
+  }
 }
 console.log('[mine] build check passed');
