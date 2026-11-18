@@ -666,6 +666,7 @@ window.A = window.A || {};
     conns.forEach((c, i) => {
       const a = byId[c.from], b = byId[c.to];
       if (!a || !b) return;
+      if ((a.type === 'mcp' && a.enabled === false) || (b.type === 'mcp' && b.enabled === false)) return;
 
       if (collapseMcp) {
         if (a.type === 'mcp' && b.type === 'agent') {
@@ -871,7 +872,7 @@ window.A = window.A || {};
         ` : ''}
 
         ${node.type === 'mcp' ? `
-          <label class="set"><span><b>Server enabled</b><br><span class="mute">Disabled servers are hidden from this flow canvas</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="\${escapeAttr(node.id)}" \${node.enabled !== false ? 'checked' : ''}></label>
+          <label class="set"><span><b>Server enabled</b><br><span class="mute">Disabled servers are hidden from this flow canvas</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="${escapeAttr(node.id)}" ${node.enabled !== false ? 'checked' : ''}></label>
           <label class="lbl">Built-in MCP Server</label>
           <select class="input" id="prop-mcp-preset">
             ${BUILTIN_MCP_SERVERS.map((s) => `
