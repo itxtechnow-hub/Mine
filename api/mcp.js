@@ -19,6 +19,13 @@ function safeEqual(a,b) {
   return x.length===y.length && crypto.timingSafeEqual(x,y);
 }
 module.exports=async function mcp(req,res) {
+  if(req.method==='OPTIONS') {
+    res.statusCode=204;
+    res.setHeader('Access-Control-Allow-Origin','*');
+    res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, Accept, Mcp-Session-Id, Last-Event-ID, X-API-Key');
+    return res.end();
+  }
   if(req.method!=='POST') return send(res,405,{error:'POST only'});
   let state;
   try { state=await loadState(); } catch(err) { return send(res,500,{error:'Memory vault unavailable: '+err.message}); }
