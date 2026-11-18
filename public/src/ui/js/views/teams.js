@@ -41,12 +41,11 @@ window.A = window.A || {};
   };
 
   const BUILTIN_TOOLS = [
-    { id: 'grep', name: 'Workspace Search (grep)', desc: 'Fast ripgrep code search across all files' },
-    { id: 'powershell', name: 'PowerShell / Terminal', desc: 'Safe command execution in Windows PowerShell' },
-    { id: 'file_view', name: 'File View / Read', desc: 'Read file contents and targeted line ranges' },
-    { id: 'file_edit', name: 'Surgical File Edit', desc: 'Precise string replacement in code files' },
-    { id: 'web_fetch', name: 'Web & API Fetch', desc: 'Fetch external documentation and web APIs' },
-    { id: 'system_info', name: 'System Info Check', desc: 'Verify platform runtimes before execution' }
+    { id: 'calculator', name: 'Calculator', desc: 'Execute exact arithmetic with a restricted expression parser' },
+    { id: 'memory_list', name: 'Memory List', desc: 'List shared and permitted private Mine Cloud Memory records' },
+    { id: 'memory_search', name: 'Memory Search', desc: 'Search persistent Mine Cloud Memory records' },
+    { id: 'memory_read', name: 'Memory Read', desc: 'Read a memory record by its ID' },
+    { id: 'memory_write', name: 'Memory Write', desc: 'Save a shared or private memory record, subject to permissions' }
   ];
 
   const BUILTIN_MCP_SERVERS = [
@@ -357,7 +356,7 @@ window.A = window.A || {};
       { id: 'synth-1', type: 'synthesizer', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'You are the synthesizer. Merge all worker outputs into one coherent answer and return to Agent.', x: 1000, y: 120 },
       { id: 'model-1', type: 'model', model: 'gpt-4o-mini', x: 262, y: 250 },
       { id: 'mem-1', type: 'memory', syncWithAgent: true, windowSize: 10, systemPrompt: 'Agent shared context memory store.', x: 307, y: 250 },
-      { id: 'tool-1', type: 'tool', enabledTools: ['grep', 'powershell', 'file_view', 'file_edit', 'web_fetch'], x: 362, y: 250 },
+      { id: 'tool-1', type: 'tool', enabledTools: ['calculator', 'memory_list', 'memory_search', 'memory_read'], x: 362, y: 250 },
       { id: 'mcp-1', type: 'mcp', serverName: 'filesystem', param: '.', tools: 'read_file, write_file, list_directory, search_files', scope: 'all-models', systemPrompt: 'Filesystem MCP Server: Read and write workspace files safely.', x: 412, y: 250 },
       { id: 'mcp-2', type: 'mcp', serverName: 'fetch', tools: 'fetch_url, convert_html_to_markdown', scope: 'all-models', systemPrompt: 'Fetch MCP Server: Web content reader and markdown converter.', x: 468, y: 250 },
       { id: 'mcp-3', type: 'mcp', serverName: 'github', tools: 'search_repositories, get_file_contents, create_pull_request', scope: 'all-models', systemPrompt: 'GitHub MCP Server: Search repos and inspect pull requests.', x: 524, y: 250 },
@@ -857,7 +856,7 @@ window.A = window.A || {};
           <label class="lbl" style="margin-top:6px">Built-in Tools Enabled</label>
           <div style="display:flex;flex-direction:column;gap:6px">
             ${BUILTIN_TOOLS.map((tool) => {
-              const isEnabled = (node.enabledTools || ['grep', 'powershell', 'file_view', 'file_edit', 'web_fetch']).includes(tool.id);
+              const isEnabled = (node.enabledTools || ['calculator', 'memory_list', 'memory_search', 'memory_read']).includes(tool.id);
               return `
                 <div class="tool-item">
                   <input type="checkbox" class="tool-checkbox" data-a="toggle-tool" data-tool="${escapeAttr(tool.id)}" data-id="${escapeAttr(node.id)}" ${isEnabled ? 'checked' : ''}>
@@ -873,7 +872,8 @@ window.A = window.A || {};
 
         ${node.type === 'mcp' ? `
           <label class="set"><span><b>Server enabled</b><br><span class="mute">Disabled servers are hidden from this flow canvas</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="${escapeAttr(node.id)}" ${node.enabled !== false ? 'checked' : ''}></label>
-          <label class="lbl">Built-in MCP Server</label>
+          <label class="lbl">MCP server preset</label>
+          <div class="mcp-desc">Configuration is saved here, but the hosted runtime does not yet start local MCP packages or connect to remote MCP endpoints. These presets are not callable tools.</div>
           <select class="input" id="prop-mcp-preset">
             ${BUILTIN_MCP_SERVERS.map((s) => `
               <option value="${s.id}" ${(node.serverName || 'filesystem') === s.id ? 'selected' : ''}>
