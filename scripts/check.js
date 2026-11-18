@@ -24,7 +24,7 @@ for (const f of required) {
   }
 }
 
-for (const m of ['api/rpc.js', 'api/gateway.js', 'api/mcp.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js', 'lib/cloud-memory.js']) {
+for (const m of ['api/rpc.js', 'api/gateway.js', 'api/mcp.js', 'api/telegram.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js', 'lib/cloud-memory.js']) {
   require(path.join(root, m));
 }
 
