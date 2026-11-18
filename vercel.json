@@ -9,7 +9,8 @@
   "rewrites": [
     { "source": "/v1", "destination": "/api/gateway?__p=" },
     { "source": "/v1/:path*", "destination": "/api/gateway?__p=:path*" },
-    { "source": "/health", "destination": "/api/gateway?__p=__health" }
+    { "source": "/health", "destination": "/api/gateway?__p=__health" },
+    { "source": "/mcp", "destination": "/api/mcp" }
   ],
   "headers": [
     {
