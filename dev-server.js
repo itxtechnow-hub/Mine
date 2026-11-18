@@ -27,6 +27,7 @@ for (const f of ['.env', '.env.local']) {
 
 const rpc = require('./api/rpc');
 const gateway = require('./api/gateway');
+const mcp = require('./api/mcp');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = {
@@ -64,6 +65,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
   if (p === '/api/rpc') return rpc(req, res);
+  if (p === '/api/mcp') return mcp(req, res);
   if (p === '/api/gateway' || p === '/health' || p === '/v1' || p.startsWith('/v1/')) return gateway(req, res);
   if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res, p);
   res.statusCode = 405;
