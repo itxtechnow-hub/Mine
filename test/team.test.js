@@ -217,3 +217,37 @@ test('worker can execute enabled calculator tools and use the result', async () 
   assert.ok(events.some((event) => event.type === 'tool.started' && event.tool === 'calculator'));
   assert.ok(events.some((event) => event.type === 'tool.completed' && event.tool === 'calculator'));
 });
+
+
+test('worker falls back without tools when provider rejects function calling', async () => {
+  let rejectedTools = false;
+  const team = {
+    id: 'no-tools-team',
+    nodes: [
+      { id: 'planner', type: 'planner', model: 'provider/planner' },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+      { id: 'tools', type: 'tool', enabledTools: ['calculator'] },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Answer without unsupported tool calls', {
+    models: [{ id: 'provider/planner' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    memoryState: {},
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') return { text: '[{"part":"Do the task","specialty":"general"}]' };
+      if (options.role === 'worker' && Array.isArray(options.tools)) {
+        rejectedTools = true;
+        throw new Error('tools are not supported by this model');
+      }
+      if (options.role === 'worker') {
+        assert.ok(options.messages.some((message) => message.role === 'system' && /Do not claim to have executed tools/.test(message.content)));
+        return { text: 'Completed without tool execution.' };
+      }
+      return { text: 'Final answer based on available context.' };
+    },
+  });
+  assert.ok(rejectedTools);
+  assert.match(result.final, /Final answer/);
+});
