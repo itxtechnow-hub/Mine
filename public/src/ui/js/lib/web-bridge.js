@@ -268,6 +268,7 @@
 
     providers: {
       getCustom: safe('providers:getCustom', []),
+      configureCloudflare: safe('providers:configureCloudflare', fail),
       addCustom: safe('providers:addCustom', []),
       removeCustom: safe('providers:removeCustom', []),
       update: safe('providers:update', fail),
