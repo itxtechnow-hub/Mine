@@ -31,7 +31,7 @@ function renderModelsView() {
     const providerName = provider ? provider.name : providerId;
 
     if (providerQuery && !(providerName + ' ' + providerId).toLowerCase().includes(providerQuery)) continue;
-    if (modelQuery && !(model.id + ' ' + (model.rawId || '')).toLowerCase().includes(modelQuery)) continue;
+    if (modelQuery && !(model.id + ' ' + (model.rawId || '') + ' ' + (model.displayName || '')).toLowerCase().includes(modelQuery)) continue;
 
     if (!groups[providerId]) groups[providerId] = { provider, providerId, name: providerName, models: [] };
     groups[providerId].models.push(model);
@@ -145,7 +145,8 @@ function renderModelRow(m, blockedSet, queueIds, primaryId) {
                aria-label="Add ${esc(m.id)} to routing queue">
       </td>
       <td class="mono">
-        <b>${esc(m.rawId || m.id)}</b>
+        <b>${esc(m.displayName || m.name || m.rawId || m.id)}</b>
+        ${m.displayName && m.displayName !== m.rawId ? `<span class="mute" style="display:block;font-size:11px">${esc(m.rawId || m.id)}</span>` : ''}
         ${m.free ? '<span class="chip ok">Free</span>' : ''}
       </td>
       <td class="r mono">${m.ctx ? fmt(m.ctx) : '—'}</td>
