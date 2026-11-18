@@ -58,6 +58,28 @@ function startUpstream() {
           res.writeHead(404, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"no such model"}}');
         }
+        if (Array.isArray(parsed.tools) && parsed.tools.some((tool) => tool.function && tool.function.name === 'calculator') &&
+            !(parsed.messages || []).some((message) => message.role === 'tool')) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({
+            id: 'tool-call',
+            choices: [{ index: 0, message: { role: 'assistant', content: null, tool_calls: [{
+              id: 'calc-e2e-1',
+              type: 'function',
+              function: { name: 'calculator', arguments: '{"expression":"6 * 7"}' },
+            }] } }],
+            usage: { total_tokens: 9 },
+          }));
+        }
+        if ((parsed.messages || []).some((message) => message.role === 'tool')) {
+          const toolMessage = parsed.messages.find((message) => message.role === 'tool');
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({
+            id: 'tool-result',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'The executed calculator returned ' + toolMessage.content } }],
+            usage: { total_tokens: 12 },
+          }));
+        }
         if (parsed.stream) {
           res.writeHead(200, { 'content-type': 'text/event-stream' });
           res.write('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n');
@@ -396,6 +418,34 @@ test('inbound MCP tools/list works and requires the gateway key', async () => {
   assert.ok(names.includes('memory.list'));
   assert.ok(names.includes('memory.search'));
   assert.ok(names.includes('memory.read'));
+});
+
+test('hosted gateway executes provider function calls through the team tool runtime', async () => {
+  await rpc('providers:addCustom', { id: 'toolmock', name: 'Tool Mock', url: upstreamUrl, custom: true });
+  await rpc('key:add', { key: 'team-tool-key', provider: 'toolmock' });
+  await rpc('store:set', 'teams', [{
+    id: 'tool-e2e-team',
+    slug: 'tool-e2e',
+    name: 'Tool E2E Team',
+    nodes: [
+      { id: 'planner', type: 'planner', model: 'toolmock/good-model' },
+      { id: 'worker', type: 'worker', model: 'toolmock/good-model', specialty: 'general' },
+      { id: 'tools', type: 'tool', enabledTools: ['calculator'] },
+      { id: 'synth', type: 'synthesizer', model: 'toolmock/good-model' },
+    ],
+    connections: [],
+  }]);
+  const response = await gw('/v1/chat/completions', {
+    model: 'mine/agent/tool-e2e',
+    messages: [{ role: 'user', content: 'tool execution integration test' }],
+  });
+  assert.strictEqual(response.status, 200);
+  const toolRequests = seen.filter((request) => request.body && Array.isArray(request.body.tools) &&
+    request.body.tools.some((tool) => tool.function && tool.function.name === 'calculator'));
+  assert.ok(toolRequests.length >= 1, 'the gateway sent calculator tool definitions to the provider');
+  const executed = seen.find((request) => request.body && Array.isArray(request.body.messages) &&
+    request.body.messages.some((message) => message.role === 'tool' && /42/.test(message.content || '')));
+  assert.ok(executed, 'the gateway sent the executed calculator result back to the provider');
 });
 
 test('dashboard poll sees logs, analytics and key health', async () => {
