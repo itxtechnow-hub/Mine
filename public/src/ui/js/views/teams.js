@@ -820,7 +820,7 @@ window.A = window.A || {};
         ${(node.type === 'planner' || node.type === 'worker' || node.type === 'synthesizer' || node.type === 'model') ? `
           <label class="lbl">${node.type === 'model' ? 'Model Provider &amp; Model ID' : 'Assigned Model'}</label>
           <select class="input" data-a="prop-model" data-id="${escapeAttr(node.id)}">
-            <option value="">(Default / Auto)</option>
+            <option value="">(Use Model Queue fallback)</option>
             ${modelOptions}
           </select>
         ` : ''}
@@ -928,9 +928,18 @@ window.A = window.A || {};
     const editor = document.getElementById('team-editor');
     if (!editor) return;
     const S = window.S || {};
-    const models = (S.fetchedModels || S.models || []).filter((m) => m && m.id);
+    const allModels = (S.fetchedModels || S.models || []).filter((m) => m && m.id);
+    const queueIds = (S.modelQueue || []).map((m) => typeof m === 'string' ? m : (m && (m.id || m.model))).filter(Boolean);
+    const assignedTo = {};
+    editorState.nodes.forEach((n) => { if (n.model) (assignedTo[n.model] = assignedTo[n.model] || []).push(n.id); });
     const selectedNode = editorState.selected ? editorState.nodes.find((n) => n.id === editorState.selected) : null;
-    const modelOptions = models.map((m) => `<option value="${escapeAttr(m.id)}" ${(selectedNode && selectedNode.model === m.id) ? 'selected' : ''}>${escapeHtml(m.id)}</option>`).join('');
+    const models = allModels.filter((m) => queueIds.includes(m.id) || queueIds.includes(m.rawId) || (assignedTo[m.id] || []).length);
+    const modelOptions = models.map((m) => {
+      const owners = assignedTo[m.id] || [];
+      const queued = queueIds.includes(m.id) || queueIds.includes(m.rawId);
+      const label = m.id + (owners.length ? ' — Assigned: ' + owners.join(', ') : '') + (queued ? ' — Queue' : '');
+      return `<option value="${escapeAttr(m.id)}" ${(selectedNode && selectedNode.model === m.id) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+    }).join('');
     const agentCaps = getAgentCapabilities();
     const conns = editorState.connections || [];
     const freeNodes = editorState.nodes.filter((n) => !conns.some((c) => c.from === n.id || c.to === n.id));
