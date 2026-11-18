@@ -1722,7 +1722,7 @@ window.A = window.A || {};
     try {
       const response = await fetch('/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + keyResult.key },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + keyResult.key, 'X-Mine-Client': 'team-ui' },
         body: JSON.stringify({ model: 'mine/team/' + (team.slug || team.id), messages: [{ role: 'user', content: prompt.value.trim() }], stream: true })
       });
       if (!response.ok || !response.body) throw new Error('Gateway HTTP ' + response.status + ': ' + (await response.text()).slice(0, 200));
