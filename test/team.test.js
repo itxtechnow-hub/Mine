@@ -251,3 +251,50 @@ test('worker falls back without tools when provider rejects function calling', a
   assert.ok(rejectedTools);
   assert.match(result.final, /Final answer/);
 });
+
+
+test('Team Leader receives executable spawn_subagent tool and queued tasks reach synthesis', async () => {
+  const events = [];
+  let plannerToolSeen = false;
+  let workerRuns = 0;
+  const team = {
+    id: 'spawn-tool-team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader', systemPrompt: 'Delegate independent work.' },
+      { id: 'researcher', type: 'worker', model: 'provider/worker', specialty: 'research' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Research and summarize this topic', {
+    settings: { teamMaxDelegates: 2 },
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    onEvent: (event) => events.push(event),
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner' && Array.isArray(options.tools)) {
+        plannerToolSeen = options.tools.some((tool) => tool.function && tool.function.name === 'spawn_subagent');
+        assert.match(options.messages[0].content, /Delegate independent work/);
+        return { text: '', toolCalls: [{
+          id: 'spawn-1', type: 'function',
+          function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Find three reliable facts', specialty: 'research' }) },
+        }] };
+      }
+      if (options.role === 'planner') return { text: 'Plan accepted.' };
+      if (options.role === 'worker') {
+        workerRuns += 1;
+        return { text: 'Three verified facts were found.' };
+      }
+      if (options.role === 'synthesizer') {
+        assert.match(prompt, /Three verified facts were found/);
+        return { text: 'Summary based on three verified facts.' };
+      }
+      return { text: 'Unexpected role' };
+    },
+  });
+  assert.ok(plannerToolSeen);
+  assert.strictEqual(workerRuns, 1);
+  assert.match(result.final, /three verified facts/i);
+  assert.ok(events.some((event) => event.type === 'tool.started' && event.tool === 'spawn_subagent'));
+  assert.ok(events.some((event) => event.type === 'delegate.started' && event.task === 'Find three reliable facts'));
+});
