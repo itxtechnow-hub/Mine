@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 const required = [
@@ -38,4 +39,9 @@ if (!process.env.MINE_SECRET) {
   console.log('[mine] tip: set MINE_SECRET to a long random string so the vault key never depends on a storage token.');
 }
 void storage;
+const memoryTests = spawnSync(process.execPath, ['--test', path.join(root, 'test/cloud-memory.test.js')], { stdio: 'inherit' });
+if (memoryTests.status !== 0) {
+  console.error('[mine] Cloud Memory tests failed');
+  process.exit(memoryTests.status || 1);
+}
 console.log('[mine] build check passed');
