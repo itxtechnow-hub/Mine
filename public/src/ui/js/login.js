@@ -146,7 +146,10 @@
       if (eyebrow) eyebrow.textContent = 'Locked console';
       if (h2) h2.textContent = 'Welcome back.';
       if (lead) lead.textContent = 'Enter your username and password to open the Mine console.';
-      if (usernameInput) usernameInput.placeholder = 'Your username';
+      if (usernameInput) {
+        usernameInput.placeholder = 'Your username';
+        if (!usernameInput.value) usernameInput.value = (S.auth && S.auth.username) || 'admin';
+      }
       if (input) { input.placeholder = 'Enter your password'; input.autocomplete = 'current-password'; }
       if (btn) btn.textContent = 'Sign in';
     }
