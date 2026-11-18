@@ -1305,6 +1305,20 @@ window.A = window.A || {};
     teams.push(team);
     S.teams = teams;
     if (window.vault && window.vault.store) await window.vault.store.set('teams', teams);
+    // Keep a single workspace registry of MCP servers installed in Team flows.
+    if (window.vault && window.vault.cloudMemory) {
+      try {
+        const current = await window.vault.cloudMemory.get();
+        const existing = (current && current.mcpServers) || [];
+        const previous = new Map(existing.map(server => [server.id, server]));
+        const registered = teams.flatMap(t => (t.nodes || []).filter(n => n.type === 'mcp').map(n => {
+          const id = t.id + ':' + n.id;
+          const oldServer = previous.get(id) || {};
+          return { id, teamId: t.id, teamName: t.name, nodeId: n.id, serverName: n.serverName || 'custom', name: n.name || n.serverName || 'MCP server', tools: n.tools || '', enabled: oldServer.enabled !== false };
+        }));
+        await window.vault.cloudMemory.setServers(registered);
+      } catch (error) { console.warn('MCP server registry sync failed', error); }
+    }
     closeEditor();
     if (window.render) window.render();
   };
