@@ -655,10 +655,14 @@ const A = {
     const np = (document.getElementById('change-pwd') || {}).value || '';
     const confirmPw = (document.getElementById('change-confirm-pwd') || {}).value || '';
     if (!np) {
-      await window.vault.auth.disable(cur);
-      toast('Password protection turned off');
-      S.auth = await window.vault.auth.getStatus();
-      render();
+      const res = await window.vault.auth.setPassword({ username, currentPassword: cur });
+      if (res.success) {
+        toast('Username updated');
+        S.auth = await window.vault.auth.getStatus();
+        render();
+      } else {
+        toast(res.error || 'Could not update the username');
+      }
       return;
     }
     if (np.length < 8) {
