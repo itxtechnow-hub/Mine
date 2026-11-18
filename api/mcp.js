@@ -33,7 +33,22 @@ module.exports=async function mcp(req,res) {
   try {
     let result;
     if(body.method==='initialize') {
-      result={protocolVersion:'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'mine-cloud-memory',version:'1.0.0'}};
+      const clientInfo = (body.params && body.params.clientInfo) || {};
+      const clientName = String(clientInfo.name || req.headers['user-agent'] || 'Unknown MCP client').slice(0,120);
+      const clientVersion = String(clientInfo.version || '').slice(0,80);
+      const clientKey = (clientName + '|' + clientVersion).toLowerCase();
+      const clients = state.cloudMemory.mcpClients || (state.cloudMemory.mcpClients = []);
+      const previous = clients.findIndex(x => (x.name + '|' + (x.version || '')).toLowerCase() === clientKey);
+      const clientRecord = { name: clientName, version: clientVersion, connectedAt: new Date().toISOString(), capabilities: body.params && body.params.capabilities || {} };
+      if (previous >= 0) clients.splice(previous, 1);
+      clients.unshift(clientRecord);
+      state.cloudMemory.mcpClients = clients.slice(0, 30);
+      result={
+        protocolVersion:'2025-03-26',
+        capabilities:{tools:{listChanged:false}},
+        serverInfo:{name:'mine-cloud-memory',version:'1.1.0'},
+        instructions:'Mine supports MCP tools over Streamable HTTP POST with JSON-RPC. Available tools: memory.list, memory.search, memory.read, memory.write, memory.update, memory.delete. Shared and model-private memory are supported. Deletion is approval-gated. This server does not currently expose MCP resources, prompts, sampling, elicitation, or server-initiated notifications. Client detected: '+clientName+(clientVersion?' '+clientVersion:'')+'. Configure this endpoint as an HTTP MCP server and send Authorization: Bearer <Mine gateway key>.'
+      };
     } else if(body.method==='notifications/initialized') {
       return res.end();
     } else if(body.method==='ping') {
