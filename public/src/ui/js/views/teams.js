@@ -624,11 +624,12 @@ window.A = window.A || {};
   }
 
   function renderNodesMarkup(agentCaps) {
-    const mcpNodes = editorState.nodes.filter((n) => n.type === 'mcp');
+    const mcpNodes = editorState.nodes.filter((n) => n.type === 'mcp' && n.enabled !== false);
     const collapseMcp = mcpNodes.length > 3 && !editorState.mcpExpanded;
     let mcpClusterDone = false;
 
     let out = editorState.nodes.map((n) => {
+      if (n.type === 'mcp' && n.enabled === false) return '';
       if (collapseMcp && n.type === 'mcp') {
         if (!mcpClusterDone) {
           mcpClusterDone = true;
@@ -870,6 +871,7 @@ window.A = window.A || {};
         ` : ''}
 
         ${node.type === 'mcp' ? `
+          <label class="set"><span><b>Server enabled</b><br><span class="mute">Disabled servers are hidden from this flow canvas</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="\${escapeAttr(node.id)}" \${node.enabled !== false ? 'checked' : ''}></label>
           <label class="lbl">Built-in MCP Server</label>
           <select class="input" id="prop-mcp-preset">
             ${BUILTIN_MCP_SERVERS.map((s) => `
@@ -1291,6 +1293,7 @@ window.A = window.A || {};
         permissions: n.permissions || { memory: true, tool: true, mcp: true },
         enabledTools: n.enabledTools || [],
         serverName: n.serverName || '',
+        enabled: n.enabled !== false,
         param: n.param !== undefined ? n.param : '',
         tools: n.tools || '',
         scope: n.scope || '',
@@ -1677,6 +1680,7 @@ window.A = window.A || {};
     if (t.dataset.a === 'prop-specialty') { node.specialty = t.value; }
     if (t.dataset.a === 'prop-prompt') { node.systemPrompt = t.value; }
     if (t.dataset.a === 'prop-desc') { node.description = t.value; }
+    if (t.dataset.a === 'prop-mcp-enabled') { node.enabled = t.checked; renderEditor(); }
     if (t.dataset.a === 'update-mcp-param') {
       const serverId = t.dataset.server;
       if (!node.serverParams) node.serverParams = {};
