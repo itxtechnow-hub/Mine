@@ -45,6 +45,10 @@ function startUpstream() {
           res.writeHead(429, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"team key rate limited"}}');
         }
+        if (auth === 'Bearer team-key-plan') {
+          res.writeHead(403, { 'content-type': 'application/json' });
+          return res.end('{"error":{"code":"free_tier_requires_subscription","message":"This model requires a paid plan"}}');
+        }
         if (auth === 'Bearer key-dead') {
           res.writeHead(401, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"bad key"}}');
@@ -325,6 +329,34 @@ test('team delegates rotate keys after a 429 instead of failing the worker', asy
   assert.strictEqual(limited.status, 'COOLDOWN');
   assert.strictEqual(good.status, 'ACTIVE');
   assert.ok(good.usageTotal >= 1, 'the fallback key served the team request');
+});
+
+test('provider plan restriction does not mark a valid team key as dead', async () => {
+  await rpc('providers:addCustom', { id: 'planmock', name: 'Plan Mock', url: upstreamUrl, custom: true });
+  await rpc('key:add', [
+    { key: 'team-key-plan', provider: 'planmock' },
+    { key: 'team-key-plan-good', provider: 'planmock' },
+  ]);
+  await rpc('store:set', 'teams', [{
+    id: 'plan-team',
+    slug: 'plan',
+    name: 'Plan Team',
+    nodes: [
+      { id: 'worker', type: 'worker', model: 'planmock/good-model', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'planmock/good-model' },
+    ],
+    connections: [],
+  }]);
+  const response = await gw('/v1/chat/completions', {
+    model: 'mine/agent/plan',
+    messages: [{ role: 'user', content: 'test plan restriction handling' }],
+  });
+  assert.strictEqual(response.status, 200);
+  const keys = (await rpc('store:get', 'keys')).result;
+  const restricted = keys.find((key) => key.key === 'team-key-plan');
+  const fallback = keys.find((key) => key.key === 'team-key-plan-good');
+  assert.notStrictEqual(restricted.status, 'DEAD');
+  assert.strictEqual(fallback.status, 'ACTIVE');
 });
 
 test('gateway diagnostics expose provider and agent health without secrets', async () => {
