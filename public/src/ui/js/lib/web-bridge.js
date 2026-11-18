@@ -299,6 +299,7 @@
       delete: safe('cloudMemory:delete', fail),
       approveDelete: safe('cloudMemory:approveDelete', fail),
       setPermissions: safe('cloudMemory:setPermissions', fail),
+      setModelPermissions: safe('cloudMemory:setModelPermissions', fail),
       setServers: safe('cloudMemory:setServers', fail),
     },
 
