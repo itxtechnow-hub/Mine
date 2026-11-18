@@ -9,7 +9,9 @@ function send(res,status,body) {
   res.statusCode=status;
   res.setHeader('Content-Type','application/json; charset=utf-8');
   res.setHeader('Cache-Control','no-store');
-  res.setHeader('Access-Control-Allow-Origin','*');\n  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');\n  res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, Accept, Mcp-Session-Id, Last-Event-ID, X-API-Key');
+  res.setHeader('Access-Control-Allow-Origin','*');
+  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization, Accept, Mcp-Session-Id, Last-Event-ID, X-API-Key');
   res.end(JSON.stringify(body));
 }
 function safeEqual(a,b) {
