@@ -280,7 +280,12 @@ test('Team Leader receives executable spawn_subagent tool and queued tasks reach
           function: { name: 'spawn_subagent', arguments: JSON.stringify({ task: 'Find three reliable facts', specialty: 'research' }) },
         }] };
       }
-      if (options.role === 'planner') return { text: 'Plan accepted.' };
+      if (options.role === 'planner') {
+        const toolResult = options.messages.find((message) => message.role === 'tool');
+        assert.ok(toolResult);
+        assert.match(toolResult.content, /Three verified facts were found/);
+        return { text: 'Plan accepted using the worker result.' };
+      }
       if (options.role === 'worker') {
         workerRuns += 1;
         return { text: 'Three verified facts were found.' };
