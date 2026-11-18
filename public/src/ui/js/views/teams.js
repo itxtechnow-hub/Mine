@@ -1852,7 +1852,13 @@ window.A = window.A || {};
 
           if (eventName === 'mine.progress') {
             const type = item.type || '';
-            if (type === 'delegate.started') {
+            if (type === 'delegate.started' && item.stage === 'planning') {
+              leaderStatus.textContent = 'Planning';
+            } else if (type === 'delegate.started' && item.stage === 'synthesis') {
+              leaderStatus.textContent = 'Synthesizing worker results';
+            } else if (type === 'delegate.started' && item.stage === 'review') {
+              leaderStatus.textContent = 'Final review';
+            } else if (type === 'delegate.started') {
               startedAt.set(item.delegateId, Date.now());
               const card = getDelegate(item);
               card.name.textContent = item.specialty || item.nodeId || 'Subagent';
@@ -1860,11 +1866,20 @@ window.A = window.A || {};
               card.meta.textContent = [item.nodeId, item.modelId].filter(Boolean).join(' · ');
               setStatus(card, 'working');
               addLog(card, 'Started: ' + (item.task || 'Assigned task'));
-              if (item.nodeId && /plan/i.test(item.delegateId || '')) leaderStatus.textContent = 'Planning';
-              else leaderStatus.textContent = 'Delegating';
+              leaderStatus.textContent = 'Delegating';
             } else if (type === 'tool.started' || type === 'tool.completed' || type === 'tool.failed') {
               const card = item.delegateId ? delegates.get(item.delegateId) : Array.from(delegates.values()).find((d) => d.meta.textContent.startsWith(item.nodeId || ''));
               if (card) addLog(card, (type === 'tool.started' ? 'Using tool: ' : type === 'tool.completed' ? 'Tool completed: ' : 'Tool failed: ') + esc(item.tool || 'tool') + (item.error ? ' — ' + item.error : ''));
+            } else if ((type === 'delegate.completed' || type === 'delegate.failed') && item.stage === 'synthesis') {
+              if (type === 'delegate.failed') {
+                leaderStatus.className = 'subagent-status failed';
+                leaderStatus.textContent = 'Synthesis failed';
+              }
+            } else if ((type === 'delegate.completed' || type === 'delegate.failed') && (item.stage === 'planning' || item.stage === 'review')) {
+              if (type === 'delegate.failed' && item.stage === 'review') {
+                leaderStatus.className = 'subagent-status failed';
+                leaderStatus.textContent = 'Final review failed';
+              }
             } else if (type === 'delegate.completed' || type === 'delegate.failed') {
               const card = getDelegate(item);
               const elapsed = startedAt.has(item.delegateId) ? Math.floor((Date.now() - startedAt.get(item.delegateId)) / 1000) + 's' : '';
