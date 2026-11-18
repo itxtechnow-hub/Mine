@@ -1872,9 +1872,19 @@ window.A = window.A || {};
               addLog(card, type === 'delegate.completed' ? 'Task completed.' : 'Task failed: ' + (item.error || 'Worker failed'));
               updateCounts();
             } else if (type === 'run.completed') {
-              leaderStatus.className = 'subagent-status done';
-              leaderStatus.textContent = 'Synthesis complete';
-              if (timerLabel) timerLabel.textContent = 'Run complete · ' + (item.totalTokens || 0) + ' tokens';
+              if (item.status === 'failed' || !(Number(item.successfulWorkers) > 0)) {
+                leaderStatus.className = 'subagent-status failed';
+                leaderStatus.textContent = 'No successful delegation';
+                if (timerLabel) timerLabel.textContent = 'Run ended without successful workers';
+              } else {
+                leaderStatus.className = 'subagent-status done';
+                leaderStatus.textContent = 'Synthesis complete';
+                if (timerLabel) timerLabel.textContent = 'Run complete · ' + (item.totalTokens || 0) + ' tokens';
+              }
+            } else if (type === 'run.failed') {
+              leaderStatus.className = 'subagent-status failed';
+              leaderStatus.textContent = 'Delegation failed';
+              if (timerLabel) timerLabel.textContent = item.reason || 'No subagents were started';
             }
           } else if (eventName === 'mine.final') {
             if (timerLabel) timerLabel.textContent = 'Team usage · ' + (item.totalTokens || 0) + ' tokens';
@@ -1885,8 +1895,10 @@ window.A = window.A || {};
         }
       }
       if (!finalText) finalBody.textContent = 'The team run ended without a final response.';
-      leaderStatus.className = 'subagent-status done';
-      if (leaderStatus.textContent === 'Planning' || leaderStatus.textContent === 'Delegating') leaderStatus.textContent = 'Finished';
+      if (leaderStatus.classList.contains('working')) {
+        leaderStatus.className = 'subagent-status failed';
+        leaderStatus.textContent = 'Run ended without completion status';
+      }
     } catch (error) {
       leaderStatus.className = 'subagent-status failed';
       leaderStatus.textContent = 'Run failed';
