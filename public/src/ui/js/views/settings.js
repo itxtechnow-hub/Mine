@@ -9,7 +9,7 @@
  */
 
 function renderSettingsView() {
-  const s = S.settings;
+  const s = S.settings || (S.settings = {});
   const cfg = S.gatewayConfig || {};
   const authEnabled = S.auth && S.auth.enabled;
 
@@ -96,7 +96,7 @@ function renderSettingsView() {
           <span><b>Available models</b><br><span class="mute">Copy any name into your client model field</span></span>
           <div class="row" style="flex-wrap:wrap;gap:4px;margin-top:6px">
             <button class="btn sm" data-a="copy-model-name" data-model="mine/auto">mine/auto</button>
-            ${(S.teams || []).map((t) => `<button class="btn sm" data-a="copy-model-name" data-model="mine/agent/${t.slug || t.id}">mine/agent/${escapeHtml(t.slug || t.id)}</button>`).join('')}
+            ${(S.teams || []).map((t) => `<button class="btn sm" data-a="copy-model-name" data-model="mine/agent/${t.slug || t.id}">mine/agent/${esc(t.slug || t.id)}</button>`).join('')}
           </div>
         </div>
 
