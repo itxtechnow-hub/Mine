@@ -1197,6 +1197,8 @@ async function handleUnlock() {
 
   try {
     const input = document.getElementById('lock-password-input');
+    const usernameInput = document.getElementById('lock-username-input');
+    const username = usernameInput ? usernameInput.value.trim() : '';
     const errBox = document.getElementById('lock-error-msg');
     const value = input ? input.value : '';
     const showErr = (msg) => {
@@ -1210,22 +1212,22 @@ async function handleUnlock() {
     if (window.vault && window.vault.auth) {
       let res;
       if (S.auth && S.auth.needsSetup) {
-        const confirmInput = document.getElementById('lock-password-confirm');
+        if (!/^[a-zA-Z0-9._-]{3,32}$/.test(username)) {
+          showErr('Choose a username with 3–32 letters, numbers, dots, underscores, or hyphens.');
+          if (usernameInput) usernameInput.focus();
+          return;
+        }
         if (value.length < 8) {
           showErr('Use at least 8 characters.');
           return;
         }
-        if (!confirmInput || confirmInput.value !== value) {
-          showErr('The passwords do not match.');
-          return;
-        }
-        res = await window.vault.auth.setPassword({ newPassword: value });
+        res = await window.vault.auth.setPassword({ username, newPassword: value });
         if (res && res.success) {
           S.auth = await window.vault.auth.getStatus();
           if (typeof window.applyLoginMode === 'function') window.applyLoginMode();
         }
       } else {
-        res = await window.vault.auth.verify(value);
+        res = await window.vault.auth.verify({ username, password: value });
       }
       if (res && res.retryAfter) {
         if (input) input.value = '';
@@ -1236,6 +1238,7 @@ async function handleUnlock() {
       if (res && res.success) {
         if (errBox) { errBox.textContent = ''; errBox.hidden = true; }
         if (input) input.value = '';
+        if (usernameInput) usernameInput.value = '';
         S.auth = await window.vault.auth.getStatus();
         failedAttempts = 0;
         clearInterval(lockoutInterval);
