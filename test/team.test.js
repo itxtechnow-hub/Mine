@@ -48,5 +48,58 @@ test('Team never silently selects an arbitrary discovered model', async () => {
     callModel: async () => { calls += 1; return { text: 'unexpected' }; },
   });
   assert.strictEqual(calls, 0);
-  assert.match(result.nodes[0].text, /no assigned or queued model/i);
+  assert.match(result.nodes[0].error, /no assigned or queued model/i);
+});
+
+
+test('Central synthesizer returns an organized answer and excludes raw worker failures', async () => {
+  const team = {
+    id: 'synthesis-team',
+    nodes: [
+      { id: 'worker-good', type: 'worker', model: 'provider/worker', specialty: 'research' },
+      { id: 'worker-bad', type: 'worker', model: 'provider/worker', specialty: 'coding' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Investigate this issue', {
+    models: [{ id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'worker' && options.nodeId === 'worker-bad') {
+        throw new Error('upstream 429 raw-provider-payload');
+      }
+      if (options.role === 'synthesizer') {
+        assert.match(prompt, /Do not expose raw worker transcripts/);
+        assert.match(prompt, /Finding 1/);
+        assert.doesNotMatch(prompt, /raw-provider-payload/);
+        return { text: '## Findings\\n- The issue is confirmed.\\n\\n## Recommendation\\n- Retry with an available key.' };
+      }
+      return { text: 'The issue is confirmed by the worker.' };
+    },
+  });
+  assert.match(result.final, /## Findings/);
+  assert.doesNotMatch(result.final, /raw-provider-payload|upstream 429/);
+  assert.strictEqual(result.nodes.find((n) => n.worker === 'worker-bad').ok, false);
+});
+
+test('Team with failed synthesis fails closed instead of returning raw worker text', async () => {
+  const team = {
+    id: 'synthesis-fallback-team',
+    nodes: [
+      { id: 'worker', type: 'worker', model: 'provider/model', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/model' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Do the task', {
+    models: [{ id: 'provider/model' }],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'synthesizer') throw new Error('upstream 403 provider details');
+      return { text: 'PRIVATE RAW WORKER TRANSCRIPT' };
+    },
+  });
+  assert.match(result.final, /withholding the raw worker output/i);
+  assert.doesNotMatch(result.final, /PRIVATE RAW WORKER TRANSCRIPT|provider details/);
 });
