@@ -237,6 +237,7 @@
 
     keys: {
       add: safe('key:add', []),
+      replace: safe('key:replace', fail),
       remove: safe('key:remove', fail),
       prune: safe('key:prune', fail),
       setEnabled: safe('key:setEnabled', fail),
