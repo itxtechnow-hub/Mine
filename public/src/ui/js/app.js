@@ -1164,7 +1164,7 @@ function showStartupScreen(requireAuthOnly) {
     screen.classList.add('auth-mode');
     if (frame) frame.style.display = 'none';
     if (authBox) authBox.style.display = 'block';
-    const input = document.getElementById('lock-password-input');
+    const input = document.getElementById('lock-username-input') || document.getElementById('lock-password-input');
     if (input) setTimeout(() => input.focus(), 80);
     return;
   }
