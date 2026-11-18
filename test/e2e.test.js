@@ -41,6 +41,10 @@ function startUpstream() {
           res.writeHead(429, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"slow down"}}');
         }
+        if (auth === 'Bearer team-key-limited') {
+          res.writeHead(429, { 'content-type': 'application/json' });
+          return res.end('{"error":{"message":"team key rate limited"}}');
+        }
         if (auth === 'Bearer key-dead') {
           res.writeHead(401, { 'content-type': 'application/json' });
           return res.end('{"error":{"message":"bad key"}}');
@@ -286,6 +290,38 @@ test('teams run through the gateway', async () => {
   assert.strictEqual(res.status, 200);
   const j = await res.json();
   assert.strictEqual(j.choices[0].message.content, 'echo:good-model');
+});
+
+test('team delegates rotate keys after a 429 instead of failing the worker', async () => {
+  await rpc('providers:addCustom', { id: 'retrymock', name: 'Retry Mock', url: upstreamUrl, custom: true });
+  await rpc('key:add', [
+    { key: 'team-key-limited', provider: 'retrymock' },
+    { key: 'team-key-good', provider: 'retrymock' },
+  ]);
+  await rpc('store:set', 'teams', [{
+    id: 'retry-team',
+    slug: 'retry',
+    name: 'Retry Team',
+    nodes: [
+      { id: 'worker', type: 'worker', model: 'retrymock/good-model', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'retrymock/good-model' },
+    ],
+    connections: [],
+  }]);
+
+  const res = await gw('/v1/chat/completions', {
+    model: 'mine/agent/retry',
+    messages: [{ role: 'user', content: 'test team key rotation' }],
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.match(json.choices[0].message.content, /echo:good-model/);
+  const keys = (await rpc('store:get', 'keys')).result;
+  const limited = keys.find((k) => k.key === 'team-key-limited');
+  const good = keys.find((k) => k.key === 'team-key-good');
+  assert.strictEqual(limited.status, 'COOLDOWN');
+  assert.strictEqual(good.status, 'ACTIVE');
+  assert.ok(good.usageTotal >= 2, 'worker and synthesizer both used the fallback key');
 });
 
 test('dashboard poll sees logs, analytics and key health', async () => {
