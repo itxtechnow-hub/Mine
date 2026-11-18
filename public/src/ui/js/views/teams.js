@@ -1863,7 +1863,7 @@ window.A = window.A || {};
               if (item.nodeId && /plan/i.test(item.delegateId || '')) leaderStatus.textContent = 'Planning';
               else leaderStatus.textContent = 'Delegating';
             } else if (type === 'tool.started' || type === 'tool.completed' || type === 'tool.failed') {
-              const card = Array.from(delegates.values()).find((d) => d.meta.textContent.startsWith(item.nodeId || ''));
+              const card = item.delegateId ? delegates.get(item.delegateId) : Array.from(delegates.values()).find((d) => d.meta.textContent.startsWith(item.nodeId || ''));
               if (card) addLog(card, (type === 'tool.started' ? 'Using tool: ' : type === 'tool.completed' ? 'Tool completed: ' : 'Tool failed: ') + esc(item.tool || 'tool') + (item.error ? ' — ' + item.error : ''));
             } else if (type === 'delegate.completed' || type === 'delegate.failed') {
               const card = getDelegate(item);
