@@ -45,7 +45,7 @@ window.A = window.A || {};
     const edit = selected || { title:'',content:'',format:'markdown',scope:'shared',tags:[] };
     return '<div class="view">' +
       '<div class="view-head"><div><h2>Mine Cloud Memory</h2><p class="sub">Encrypted persistent memory shared by your Mine workspace and connected MCP clients.</p></div><button class="btn primary" data-a="memory-new">+ New memory</button></div>' +
-      '<details class="card" style="margin-bottom:14px" open><summary style="cursor:pointer;font-weight:700">Installed MCP servers ('+(data.mcpServers||[]).length+') <span class="mute" style="font-weight:400">· manage availability</span></summary>' +
+      '<details class="card" style="margin-bottom:14px"><summary style="cursor:pointer;font-weight:700">Installed MCP servers ('+(data.mcpServers||[]).length+') <span class="mute" style="font-weight:400">· manage availability</span></summary>' +
       ((data.mcpServers||[]).length ? (data.mcpServers||[]).map(server=>'<label class="set"><span><b>'+esc(server.name||server.serverName||server.id)+'</b><br><span class="mute">'+esc(server.teamName||server.teamId||'Mine Team')+' · '+esc(server.tools||'MCP tools')+'</span></span><input type="checkbox" data-a="memory-server-toggle" data-id="'+esc(server.id)+'" '+(server.enabled!==false?'checked':'')+'></label>').join('') : '<p class="mute">No MCP servers have been added through a Team flow yet. Add an MCP node in the Team editor and save it to register it here.</p>') +
       '</details>' +
       '<details class="card" style="margin-bottom:14px"><summary style="cursor:pointer;font-weight:700">Detected MCP clients ('+(data.mcpClients||[]).length+')</summary>' +
