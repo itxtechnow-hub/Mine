@@ -89,7 +89,7 @@ function renderKeyRows() {
                 ${enabled ? 'Enabled' : 'Off'}
               </label>
               <button class="btn sm" data-a="copy-key" data-id="${esc(k.id)}">Copy</button>
-              <button class="btn sm" data-a="replace-key" data-id="${esc(k.id)}">Replace</button>
+              ${k.status === 'DEAD' ? '<button class="btn sm p" data-a="replace-key" data-id="' + esc(k.id) + '">Replace Key</button>' : ''}
               <button class="btn sm" data-a="testkey" data-id="${esc(k.id)}">Test</button>
               <button class="btn sm d" data-a="rmkey" data-id="${esc(k.id)}">Delete</button>
             </div>
