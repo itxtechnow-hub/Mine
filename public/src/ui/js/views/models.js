@@ -147,7 +147,13 @@ function renderModelRow(m, blockedSet, queueIds, primaryId) {
       <td class="mono">
         <b>${esc(m.displayName || m.name || m.rawId || m.id)}</b>
         ${m.displayName && m.displayName !== m.rawId ? `<span class="mute" style="display:block;font-size:11px">${esc(m.rawId || m.id)}</span>` : ''}
-        ${m.free ? '<span class="chip ok">Free</span>' : ''}
+        ${m.provider === 'cloudflare-workers-ai'
+          ? (m.billingTier === 'free'
+            ? '<span class="chip ok" title="Model metadata identifies this model as free">Free</span>'
+            : m.billingTier === 'paid'
+              ? '<span class="chip bad" title="Model metadata indicates paid billing">Paid</span>'
+              : '<span class="chip" title="Uses the shared Workers AI daily Neurons allowance; availability depends on your plan and remaining quota">Quota-limited</span>')
+          : (m.free ? '<span class="chip ok">Free</span>' : '')}
       </td>
       <td class="r mono">${m.ctx ? fmt(m.ctx) : '—'}</td>
       <td class="r">
