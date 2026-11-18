@@ -24,7 +24,7 @@ test('memory tools enforce model permissions and write through the memory store'
   const result = executeTeamTool(state, 'memory.write', {
     title: 'Agent note',
     content: 'A verified project detail.',
-    scope: 'shared',
+    scope: 'private',
   }, 'provider/model-a', (record) => written.push(record));
   assert.strictEqual(result.title, 'Agent note');
   assert.strictEqual(written.length, 1);
