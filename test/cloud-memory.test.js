@@ -41,3 +41,12 @@ test('model deletion requests require owner approval', () => {
   memory.approveDelete(s, request2.requestId, true, 'admin');
   assert.equal(memory.read(s, saved.id, 'agent'), null);
 });
+
+test('per-model permissions override workspace defaults', () => {
+  const s = state();
+  s.cloudMemory.modelPermissions = { 'model-a': { read: false, write: false, update: false } };
+  assert.throws(() => memory.write(s, { title: 'blocked', content: 'nope' }, 'model-a', 'write'), /permission is disabled/);
+  const shared = memory.write(s, { title: 'shared', content: 'visible' }, 'admin', 'write');
+  assert.throws(() => memory.read(s, shared.id, 'model-a'), /permission is disabled/);
+  assert.equal(memory.read(s, shared.id, 'model-b').content, 'visible');
+});
