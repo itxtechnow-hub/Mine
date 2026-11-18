@@ -49,3 +49,11 @@ test('remote MCP tools are normalized, bounded and namespaced', () => {
   assert.equal(tools[0].function.parameters.additionalProperties, false);
   assert.deepEqual(tools[1].function.parameters, { type: 'object', properties: {}, additionalProperties: false });
 });
+
+
+test('IPv6 validation permits only public global-unicast space', () => {
+  for (const ip of ['2001:db8::1', '100::1', '2001:2::1', '2002::1', '::ffff:127.0.0.1']) {
+    assert.equal(isPrivateAddress(ip), true, ip);
+  }
+  assert.equal(isPrivateAddress('2606:4700:4700::1111'), false);
+});
