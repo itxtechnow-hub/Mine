@@ -562,7 +562,7 @@ test('Team Leader uses a validated structured plan when the planner provider can
       return { text: 'Unexpected role' };
     },
   });
-  assert.strictEqual(workerRuns.length, 2);
+  assert.strictEqual(workerRuns.length, 2, JSON.stringify({ final: result.final, planningMode: result.planningMode, events }));
   assert.deepStrictEqual(workerRuns.map((run) => run.modelId).sort(), ['provider/coder', 'provider/research']);
   assert.strictEqual(result.nodes.length, 2);
   assert.strictEqual(result.planningMode, 'structured_json');
