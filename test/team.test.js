@@ -513,3 +513,60 @@ test('Team Leader rejects the entire original prompt as a worker task', async ()
   assert.strictEqual(result.status, 'failed');
   assert.match(result.final, /did not create any subagents/i);
 });
+
+
+test('Team Leader uses a validated structured plan when the planner provider cannot call tools', async () => {
+  const events = [];
+  const workerRuns = [];
+  const prompt = 'Research the causes of model tool-calling failures and recommend fixes.';
+  const team = {
+    id: 'structured-planner-fallback',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'researcher', type: 'worker', model: 'provider/research', specialty: 'research' },
+      { id: 'coder', type: 'worker', model: 'provider/coder', specialty: 'coding' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, prompt, {
+    settings: { teamMaxDelegates: 4, teamConcurrency: 2 },
+    models: ['provider/leader', 'provider/research', 'provider/coder', 'provider/synth'].map((id) => ({ id })),
+    modelQueue: [],
+    onEvent: (event) => events.push(event),
+    callModel: async (modelId, _prompt, options) => {
+      if (options.role === 'planner' && Array.isArray(options.tools)) {
+        throw new Error('function calling is not supported by this model');
+      }
+      if (options.role === 'planner') {
+        return { text: 'I cannot create subagents with native tool calling.' };
+      }
+      if (options.role === 'planner-fallback') {
+        return { text: JSON.stringify([
+          { part: 'Check provider documentation for native function calling support.', specialty: 'research' },
+          { part: 'Inspect Mine request parsing and tool-call fallback behavior.', specialty: 'coding' },
+          { part: 'Check provider documentation for native function calling support.', specialty: 'research' },
+          { part: prompt, specialty: 'research' },
+          { part: 'Review security implications of tool execution.', specialty: 'security' },
+        ]) };
+      }
+      if (options.role === 'worker') {
+        workerRuns.push({ modelId, task: options.messages[0].content });
+        return { text: 'Completed: ' + options.messages[0].content };
+      }
+      if (options.role === 'synthesizer') {
+        assert.match(_prompt, /Check provider documentation/);
+        assert.match(_prompt, /Inspect Mine request parsing/);
+        return { text: 'Both workers completed and their findings were synthesized.' };
+      }
+      return { text: 'Unexpected role' };
+    },
+  });
+  assert.strictEqual(workerRuns.length, 2);
+  assert.deepStrictEqual(workerRuns.map((run) => run.modelId).sort(), ['provider/coder', 'provider/research']);
+  assert.strictEqual(result.nodes.length, 2);
+  assert.strictEqual(result.planningMode, 'structured_json');
+  assert.match(result.final, /Both workers completed/);
+  assert.ok(events.some((event) => event.type === 'planner.fallback.completed' && event.taskCount === 2));
+  assert.ok(events.filter((event) => event.type === 'delegate.started' && event.task).length >= 2);
+});
