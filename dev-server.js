@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
 });
 
 const port = process.env.PORT !== undefined && process.env.PORT !== '' ? Number(process.env.PORT) : 3000;
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
   console.log('Mine console  http://localhost:' + port);
   console.log('Gateway       http://localhost:' + port + '/v1');
 });
