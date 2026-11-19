@@ -397,6 +397,7 @@ window.A = window.A || {};
     };
 
     renderEditor();
+    editorState.initialSnapshot = editorSnapshot();
     // Auto-fit all nodes cleanly into the viewport after layout paints
     setTimeout(() => {
       const fit = computeFitTransform();
@@ -408,7 +409,19 @@ window.A = window.A || {};
     editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function closeEditor() {
+  function editorSnapshot() {
+    return JSON.stringify({
+      name: (document.getElementById('te-name') || {}).value || editorState.team && editorState.team.name || '',
+      slug: (document.getElementById('te-slug') || {}).value || editorState.team && editorState.team.slug || '',
+      nodes: editorState.nodes || [],
+      connections: editorState.connections || [],
+    });
+  }
+
+  function closeEditor(force) {
+    if (!force && editorState.initialSnapshot && editorSnapshot() !== editorState.initialSnapshot) {
+      if (typeof window.confirm === 'function' && !window.confirm('You have unsaved flow changes. Close without saving?')) return false;
+    }
     const editor = document.getElementById('team-editor');
     if (editor) editor.classList.add('hidden');
     editorState = { team: null, nodes: [], connections: [], selected: null, dragging: null, panning: false, zoom: 1, panX: 0, panY: 0, testBanner: null, pulsing: false, mcpExpanded: false };
@@ -1258,7 +1271,7 @@ window.A = window.A || {};
     if (window.render) window.render();
   };
 
-  window.A['cancel-team'] = () => { closeEditor(); };
+  window.A['cancel-team'] = () => { closeEditor(false); };
 
   window.A['save-team'] = async () => {
     const name = (document.getElementById('te-name') || {}).value || 'Team';
@@ -1317,7 +1330,7 @@ window.A = window.A || {};
         await window.vault.cloudMemory.setServers(registered);
       } catch (error) { console.warn('MCP server registry sync failed', error); }
     }
-    closeEditor();
+    closeEditor(true);
     if (window.render) window.render();
   };
 
