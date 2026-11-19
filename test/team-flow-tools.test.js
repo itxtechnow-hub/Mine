@@ -88,3 +88,17 @@ test('Boss flow tools never return MCP endpoint tokens or private server paramet
   assert.equal(JSON.stringify(read).includes('secret-token-value'), false);
   assert.equal(JSON.stringify(read).includes('serverTokens'), false);
 });
+
+
+test('Boss cannot report success when a duplicate team slug is rejected by storage', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = { id: 'current', slug: 'current', name: 'Current', nodes: [], connections: [] };
+  assert.throws(() => executeBossFlowTool(team, 'team_create', {
+    name: 'Duplicate Team', slug: 'existing-team', plannerModel: 'provider/boss', workerModel: 'provider/worker',
+  }, {
+    defaultModel: 'provider/boss',
+    workerModel: 'provider/worker',
+    allowedModels: ['provider/boss', 'provider/worker'],
+    onTeamCreate: () => false,
+  }), /already exists/i);
+});
