@@ -1052,44 +1052,38 @@ window.A = window.A || {};
 
     // Bind canvas node dragging and selection
     editor.querySelectorAll('.team-node').forEach((el) => {
-      el.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        const id = el.dataset.id;
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        if (e.target.closest && e.target.closest('.handle,.cap-badge,.node-flip-btn')) return;
+        e.preventDefault(); e.stopPropagation();
+        const id = el.dataset.id, node = editorState.nodes.find((x) => x.id === id);
+        editorState.dragging = id; editorState.selected = id;
         let moved = false;
-        editorState.dragging = id;
-        editorState.selected = id;
-        const n = editorState.nodes.find((x) => x.id === id);
-        const clickX = e.clientX;
-        const clickY = e.clientY;
-        const startX = n ? n.x : 0;
-        const startY = n ? n.y : 0;
-
+        const pointerId = e.pointerId, clickX = e.clientX, clickY = e.clientY;
+        const startX = node ? node.x : 0, startY = node ? node.y : 0;
         const onMove = (ev) => {
-          if (!editorState.dragging) return;
-          moved = true;
+          if (ev.pointerId !== pointerId || editorState.dragging !== id) return;
           const dx = (ev.clientX - clickX) / (editorState.zoom || 1);
           const dy = (ev.clientY - clickY) / (editorState.zoom || 1);
-          if (n) {
-            n.x = Math.round(startX + dx);
-            n.y = Math.round(startY + dy);
-            el.setAttribute('transform', `translate(${n.x},${n.y})`);
+          if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+          if (node && moved) {
+            node.x = Math.round(startX + dx); node.y = Math.round(startY + dy);
+            el.setAttribute('transform', `translate(${node.x},${node.y})`);
+            updateArrowPaths();
           }
-          updateArrowPaths();
         };
-
-        const onUp = () => {
+        const onUp = (ev) => {
+          if (ev.pointerId !== pointerId) return;
           editorState.dragging = null;
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
-          if (!moved && el.classList.contains('mcp-cluster')) {
-            window.A['toggle-mcp-cluster']();
-            return;
-          }
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          document.removeEventListener('pointercancel', onUp);
+          if (!moved && el.classList.contains('mcp-cluster')) { window.A['toggle-mcp-cluster'](); return; }
           renderEditor();
         };
-
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        document.addEventListener('pointermove', onMove, { passive: false });
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
       });
     });
 
@@ -1148,44 +1142,37 @@ window.A = window.A || {};
     // Canvas background pan & deselect
     const svgEl = document.getElementById('team-canvas');
     if (svgEl) {
-      svgEl.addEventListener('mousedown', (e) => {
-        if (e.target === svgEl || e.target.id === 'canvas-g') {
-          let moved = false;
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const origPanX = editorState.panX || 0;
-          const origPanY = editorState.panY || 0;
-          editorState.panning = true;
-          svgEl.classList.add('panning');
-
-          const onMove = (ev) => {
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
-            editorState.panX = origPanX + dx;
-            editorState.panY = origPanY + dy;
-            const g = document.getElementById('canvas-g');
-            if (g) g.setAttribute('transform', `translate(${editorState.panX},${editorState.panY}) scale(${editorState.zoom || 1})`);
-          };
-
-          const onUp = () => {
-            editorState.panning = false;
-            svgEl.classList.remove('panning');
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-            if (!moved) {
-              editorState.selected = null;
-              editorState.connectFromNode = null;
-              renderEditor();
-            }
-          };
-
-          document.addEventListener('mousemove', onMove);
-          document.addEventListener('mouseup', onUp);
-        }
+      svgEl.style.touchAction = 'none';
+      svgEl.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        if (!(e.target === svgEl || e.target.id === 'canvas-g')) return;
+        e.preventDefault();
+        let moved = false;
+        const pointerId = e.pointerId, startX = e.clientX, startY = e.clientY;
+        const origPanX = editorState.panX || 0, origPanY = editorState.panY || 0;
+        editorState.panning = true; svgEl.classList.add('panning');
+        const onMove = (ev) => {
+          if (ev.pointerId !== pointerId || !editorState.panning) return;
+          const dx = ev.clientX - startX, dy = ev.clientY - startY;
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+          editorState.panX = origPanX + dx; editorState.panY = origPanY + dy;
+          const g = document.getElementById('canvas-g');
+          if (g) g.setAttribute('transform', `translate(${editorState.panX},${editorState.panY}) scale(${editorState.zoom || 1})`);
+        };
+        const onUp = (ev) => {
+          if (ev.pointerId !== pointerId) return;
+          editorState.panning = false; svgEl.classList.remove('panning');
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          document.removeEventListener('pointercancel', onUp);
+          if (!moved) { editorState.selected = null; editorState.connectFromNode = null; renderEditor(); }
+        };
+        document.addEventListener('pointermove', onMove, { passive: false });
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
       });
 
-      svgEl.addEventListener('wheel', (e) => {
+          svgEl.addEventListener('wheel', (e) => {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
         const newZoom = Math.min(2, Math.max(0.3, (editorState.zoom || 1) * factor));
