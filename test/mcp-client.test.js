@@ -7,6 +7,7 @@ const {
   resolvePublicHost,
   validateEndpoint,
   cleanToolList,
+  cleanInputSchema,
 } = require('../lib/gateway/mcp-client');
 
 test('MCP client rejects loopback, private, link-local and reserved addresses', () => {
@@ -56,4 +57,22 @@ test('IPv6 validation permits only public global-unicast space', () => {
     assert.equal(isPrivateAddress(ip), true, ip);
   }
   assert.equal(isPrivateAddress('2606:4700:4700::1111'), false);
+});
+
+
+test('remote MCP JSON schemas are depth- and size-bounded', () => {
+  const properties = {};
+  for (let index = 0; index < 60; index++) properties['field_' + index] = { type: 'string', description: 'x'.repeat(600) };
+  const cleaned = cleanInputSchema({
+    type: 'object',
+    properties,
+    required: Object.keys(properties),
+    additionalProperties: true,
+    $ref: 'https://attacker.example/schema',
+  });
+  assert.equal(Object.keys(cleaned.properties).length, 40);
+  assert.equal(cleaned.additionalProperties, false);
+  assert.equal(cleaned.required.length, 40);
+  assert.equal(cleaned.properties.field_0.description.length, 300);
+  assert.equal(Object.prototype.hasOwnProperty.call(cleaned, '$ref'), false);
 });
