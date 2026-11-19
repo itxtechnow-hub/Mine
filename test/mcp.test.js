@@ -50,6 +50,12 @@ test('deployed /mcp endpoint accepts gateway API key in query and lists Mine too
   assert.ok(names.includes('mine_list_models'));
   assert.ok(names.includes('mine_list_teams'));
   assert.ok(names.includes('mine_chat_completion'));
+
+  const apiKeyHeader = await callMcp({ jsonrpc: '2.0', id: 6, method: 'tools/list' }, {
+    headers: { 'x-api-key': 'mcp-test-secret' },
+  });
+  assert.strictEqual(apiKeyHeader.status, 200);
+  assert.ok(apiKeyHeader.body.result.tools.length > 0);
 });
 
 test('deployed MCP model and team catalog tools return current Mine entries', async () => {
