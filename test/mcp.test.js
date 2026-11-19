@@ -69,7 +69,12 @@ test('deployed MCP model and team catalog tools return current Mine entries', as
   await storage.saveState({
     ...storage.DEFAULTS(),
     settings: { gatewayApiKey: 'mcp-test-secret' },
-    teams: [{ id: 'team-1', slug: 'research', name: 'Research Team', enabled: true }],
+    teams: [{ id: 'team-1', slug: 'research', name: 'Research Team', enabled: true, nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader' },
+      { id: 'researcher', type: 'worker', model: 'provider/research', specialty: 'research' },
+      { id: 'writer', type: 'worker', model: 'provider/writer', specialty: 'writing' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ] }],
     fetchedModels: [{ id: 'provider/model-a', providerId: 'provider-a' }],
   });
   const headers = { authorization: 'Bearer mcp-test-secret' };
