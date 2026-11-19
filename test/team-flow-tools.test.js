@@ -1,0 +1,51 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const { test } = require('node:test');
+const { runTeam } = require('../lib/gateway/team');
+
+test('Boss can create and persist a new team through its authorized flow tools', async () => {
+  const createdTeams = [];
+  const team = {
+    id: 'boss-flow-team',
+    slug: 'boss-flow-team',
+    name: 'Boss Flow Team',
+    nodes: [
+      { id: 'boss', type: 'planner', model: 'provider/boss', permissions: { flow: true } },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+    ],
+    connections: [],
+  };
+  const result = await runTeam(team, 'Create a new research team', {
+    models: [{ id: 'provider/boss' }, { id: 'provider/worker' }],
+    availableModels: ['provider/boss', 'provider/worker'],
+    modelQueue: [],
+    onTeamCreate: (created) => { createdTeams.push(created); return true; },
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        const toolMessages = (options.messages || []).filter((message) => message.role === 'tool');
+        if (toolMessages.length) return { text: 'Created the new team.' };
+        return { text: '', toolCalls: [{
+          id: 'create-team',
+          type: 'function',
+          function: { name: 'team_create', arguments: JSON.stringify({ name: 'Research Team', slug: 'research-team', plannerModel: 'provider/boss', workerModel: 'provider/worker' }) },
+        }] };
+      }
+      return { text: 'unexpected' };
+    },
+  });
+
+  assert.equal(result.status, 'completed');
+  assert.match(result.final, /Created the new team/);
+  assert.equal(createdTeams.length, 1);
+  assert.equal(createdTeams[0].slug, 'research-team');
+  assert.equal(createdTeams[0].nodes.filter((node) => node.type === 'worker').length, 1);
+  assert.equal(createdTeams[0].connections.length, 4);
+});
+
+test('Boss flow tools reject unsafe node types and dangling connections', async () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = { id: 'safe', slug: 'safe', name: 'Safe', nodes: [{ id: 'boss', type: 'planner' }], connections: [] };
+  assert.throws(() => executeBossFlowTool(team, 'flow_add_node', { node: { id: 'x', type: 'shell' } }), /invalid/i);
+  assert.throws(() => executeBossFlowTool(team, 'flow_connect', { from: 'boss', to: 'missing' }), /endpoints/i);
+});
