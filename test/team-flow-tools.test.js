@@ -65,3 +65,26 @@ test('Boss flow deletion requires explicit intent and confirmation', () => {
   assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'worker', confirm: true }, { allowDeleteNode: true }), /last worker/i);
   assert.throws(() => executeBossFlowTool(team, 'flow_disconnect', { from: 'worker', to: 'extra', confirm: true }, { allowDisconnect: false }), /explicit user request/i);
 });
+
+
+test('Boss flow tools never return MCP endpoint tokens or private server parameters', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = {
+    id: 'mcp-safe', slug: 'mcp-safe', name: 'MCP Safe',
+    nodes: [{ id: 'boss', type: 'planner' }, { id: 'worker', type: 'worker' }],
+    connections: [],
+  };
+  const result = executeBossFlowTool(team, 'flow_add_node', {
+    node: {
+      id: 'remote-mcp', type: 'mcp', name: 'Remote MCP',
+      serverName: 'custom', enabledServers: ['custom'],
+      serverParams: { custom: 'https://mcp.example.com/rpc' },
+    },
+  });
+  assert.equal(result.success, true);
+  assert.equal(JSON.stringify(result).includes('mcp.example.com'), false);
+  team.nodes[2].serverTokens = { custom: 'secret-token-value' };
+  const read = executeBossFlowTool(team, 'flow_read', {});
+  assert.equal(JSON.stringify(read).includes('secret-token-value'), false);
+  assert.equal(JSON.stringify(read).includes('serverTokens'), false);
+});
