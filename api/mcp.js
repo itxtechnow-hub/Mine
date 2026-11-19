@@ -30,7 +30,7 @@ module.exports=async function mcp(req,res) {
   let state;
   try { state=await loadState(); } catch(err) { return send(res,500,{error:'Memory vault unavailable: '+err.message}); }
   if(ensureGatewayKey(state)) await saveState(state).catch(()=>{});
-  const bearer=String(req.headers.authorization||'').replace(/^Bearer\\s+/i,'').trim();
+  const bearer=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();
   const headerKey=String(req.headers['x-api-key']||'').trim();
   const queryKey=String(new URL(req.url||'/mcp','http://localhost').searchParams.get('apiKey')||'').trim();
   const token=bearer||headerKey||queryKey;
