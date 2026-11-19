@@ -495,7 +495,7 @@ test('Team Leader rejects the entire original prompt as a worker task', async ()
   const result = await runTeam(team, prompt, {
     models: [{ id: 'provider/leader' }, { id: 'provider/worker' }],
     modelQueue: [],
-    callModel: async (modelId, _prompt, options) => {
+    callModel: async (modelId, callPrompt, options) => {
       if (options.role === 'planner') {
         const toolMessages = options.messages.filter((message) => message.role === 'tool');
         if (toolMessages.length) return { text: 'I will split the task correctly.' };
@@ -551,8 +551,8 @@ test('Team Leader uses a validated structured plan when the planner provider can
         ]) };
       }
       if (options.role === 'worker') {
-        workerRuns.push({ modelId, task: options.messages[0].content });
-        return { text: 'Completed: ' + options.messages[0].content };
+        workerRuns.push({ modelId, task: callPrompt });
+        return { text: 'Completed: ' + callPrompt };
       }
       if (options.role === 'synthesizer') {
         assert.match(_prompt, /Check provider documentation/);
