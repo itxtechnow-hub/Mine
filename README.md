@@ -43,6 +43,43 @@ vercel --prod
 
 ---
 
+## GitHub Codespaces (temporary cloud workspace)
+
+Mine includes a Codespaces development container. To run it without deploying to
+Vercel:
+
+1. Open the repository on GitHub: https://github.com/itxtechnow-hub/Mine
+2. Select **Code → Codespaces → Create codespace on main**.
+3. Wait for the container setup to finish. It installs dependencies and starts
+   Mine on port **3000** automatically.
+4. Open the forwarded **Mine Console** port from the **Ports** tab. Keep its
+   visibility **Private**.
+5. On first use, create your console password. Do not make the port public.
+
+### Codespaces secrets and data
+
+- Add a unique `MINE_SECRET` under **Repository Settings → Secrets and
+  variables → Codespaces** before creating the Codespace. Generate one with:
+  `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+- Do not reuse a production encryption secret for an isolated test workspace.
+- Do not add production `BLOB_READ_WRITE_TOKEN` or Redis credentials unless
+  you intentionally want this Codespace to access the same vault as production.
+  Without those variables, Mine stores its encrypted test vault in `.data/`
+  inside the Codespace workspace.
+- Codespaces can stop or be deleted. Export or back up anything important;
+  this is a temporary development/test environment, not durable production
+  hosting.
+- The worker sandbox integration uses Vercel Sandbox. It requires Vercel
+  sandbox credentials/runtime support and is not guaranteed to work inside
+  Codespaces. Team orchestration and other features should be tested
+  independently of sandbox-backed tools.
+
+To view startup logs, run `tail -f /tmp/mine-dev.log` in the Codespaces
+terminal. To restart Mine, run `npm run dev` after stopping the existing
+process.
+
+---
+
 ## Use it
 
 In the console, add API keys (**API Keys → + Add Key**), press **Fetch
