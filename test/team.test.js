@@ -534,7 +534,7 @@ test('Team Leader uses a validated structured plan when the planner provider can
     models: ['provider/leader', 'provider/research', 'provider/coder', 'provider/synth'].map((id) => ({ id })),
     modelQueue: [],
     onEvent: (event) => events.push(event),
-    callModel: async (modelId, _prompt, options) => {
+    callModel: async (modelId, callPrompt, options) => {
       if (options.role === 'planner' && Array.isArray(options.tools)) {
         throw new Error('function calling is not supported by this model');
       }
@@ -555,8 +555,8 @@ test('Team Leader uses a validated structured plan when the planner provider can
         return { text: 'Completed: ' + callPrompt };
       }
       if (options.role === 'synthesizer') {
-        assert.match(_prompt, /Check provider documentation/);
-        assert.match(_prompt, /Inspect Mine request parsing/);
+        assert.match(callPrompt, /Check provider documentation/);
+        assert.match(callPrompt, /Inspect Mine request parsing/);
         return { text: 'Both workers completed and their findings were synthesized.' };
       }
       return { text: 'Unexpected role' };
