@@ -102,3 +102,17 @@ test('Boss cannot report success when a duplicate team slug is rejected by stora
     onTeamCreate: () => false,
   }), /already exists/i);
 });
+
+
+test('flow validation requires a planner and worker and detects duplicate graph IDs', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = {
+    id: 'invalid-graph', slug: 'invalid-graph', name: 'Invalid Graph',
+    nodes: [{ id: 'same', type: 'planner' }, { id: 'same', type: 'worker', model: 'provider/worker' }],
+    connections: [{ from: 'same', to: 'same' }],
+  };
+  const result = executeBossFlowTool(team, 'flow_validate', {});
+  assert.equal(result.valid, false);
+  assert.ok(result.problems.some((problem) => /duplicate node ID/i.test(problem)));
+  assert.ok(result.problems.some((problem) => /cannot connect to itself/i.test(problem)));
+});
