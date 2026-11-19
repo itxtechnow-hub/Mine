@@ -16,6 +16,7 @@
     "check": "node scripts/check.js"
   },
   "dependencies": {
-    "@vercel/blob": "^2.9.0"
+    "@vercel/blob": "^2.9.0",
+    "@langchain/langgraph": "^1.0.0"
   }
 }
