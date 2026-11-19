@@ -1,5 +1,9 @@
 name: Mine CI
 
+concurrency:
+  group: mine-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]
