@@ -82,13 +82,20 @@ module.exports=async function mcp(req,res) {
       } else if(p.name==='mine_list_teams') {
         output=(state.teams||[]).filter(t=>t.enabled!==false).map(t=>{
           const nodes=Array.isArray(t.nodes)?t.nodes:[];
-          const configuredNodes=nodes.filter(n=>n&&n.enabled!==false&&['planner','worker','agent','synthesizer'].includes(n.type)).map(n=>({
-            id:String(n.id||''),
-            role:String(n.type),
-            specialty:n.specialty?String(n.specialty):null,
-            model:n.model?String(n.model):null,
-            configured:true
-          }));
+          const connections=Array.isArray(t.connections)?t.connections:(Array.isArray(t.conns)?t.conns:[]);
+          const configuredNodes=nodes.filter(n=>n&&n.enabled!==false&&['planner','worker','agent','synthesizer'].includes(n.type)).map(n=>{
+            const modelConnection=connections.find(c=>c&&c.to===n.id&&(c.tp==='model'||c.tp==='main'));
+            const modelNode=modelConnection?nodes.find(source=>source&&source.id===modelConnection.from&&source.type==='model'):null;
+            const model=n.model||(modelNode&&modelNode.model)||null;
+            return {
+              id:String(n.id||''),
+              role:String(n.type),
+              specialty:n.specialty?String(n.specialty):null,
+              model:model?String(model):null,
+              modelAssignment:n.model?'node':(modelNode?'connection':'runtime_queue_or_unassigned'),
+              configured:true
+            };
+          });
           return {
             id:t.id,
             name:t.name,
