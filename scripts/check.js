@@ -24,7 +24,7 @@ for (const f of required) {
   }
 }
 
-for (const m of ['api/rpc.js', 'api/gateway.js', 'api/mcp.js', 'api/telegram.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js', 'lib/cloud-memory.js']) {
+for (const m of ['api/rpc.js', 'api/gateway.js', 'api/mcp.js', 'api/telegram.js', 'lib/rpc.js', 'lib/gateway-runtime.js', 'lib/storage.js', 'lib/cloud-memory.js', 'lib/gateway/team.js', 'lib/gateway/tools.js', 'lib/gateway/delegation-graph.js', 'lib/gateway/sandbox.js', 'lib/gateway/mcp-client.js', 'lib/gateway/mcp-tools.js']) {
   require(path.join(root, m));
 }
 
@@ -39,7 +39,7 @@ if (!process.env.MINE_SECRET) {
   console.log('[mine] tip: set MINE_SECRET to a long random string so the vault key never depends on a storage token.');
 }
 void storage;
-for (const testFile of ['test/cloud-memory.test.js', 'test/gateway.test.js', 'test/team.test.js']) {
+for (const testFile of ['test/cloud-memory.test.js', 'test/gateway.test.js', 'test/team.test.js', 'test/team-flow-tools.test.js', 'test/delegation-graph.test.js', 'test/sandbox.test.js', 'test/mcp-client.test.js']) {
   const result = spawnSync(process.execPath, ['--test', path.join(root, testFile)], { stdio: 'inherit' });
   if (result.status !== 0) {
     console.error('[mine] Tests failed:', testFile);
