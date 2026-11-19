@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { test } = require('node:test');
-const { runTeam, validateTeam } = require('../lib/gateway/team');
+const { runTeam, validateTeam, findTeam, teamModelIds } = require('../lib/gateway/team');
 
 test('Team worker delegates execute concurrently and emit independent lifecycle events', async () => {
   let active = 0;
@@ -569,4 +569,12 @@ test('Team Leader uses a validated structured plan when the planner provider can
   assert.match(result.final, /Both workers completed/);
   assert.ok(events.some((event) => event.type === 'planner.fallback.completed' && event.taskCount === 2));
   assert.ok(events.filter((event) => event.type === 'delegate.started' && event.task).length >= 2);
+});
+
+
+test('Team model IDs resolve configured teams by slug even when the ID differs', () => {
+  const team = { id: 'internal-team-123', slug: 'research-team', name: 'Research Team', enabled: true };
+  const ids = teamModelIds([team]);
+  assert.deepStrictEqual(ids, ['mine/team/research-team']);
+  assert.strictEqual(findTeam([team], ids[0]), team);
 });
