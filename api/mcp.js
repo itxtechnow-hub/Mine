@@ -80,7 +80,25 @@ module.exports=async function mcp(req,res) {
       if(p.name==='mine_list_models') {
         output=[{id:'mine/auto',owned_by:'Mine'},...(state.teams||[]).filter(t=>t.enabled!==false).map(t=>({id:'mine/team/'+(t.slug||t.id),name:t.name||t.id,owned_by:'Mine'})),...(state.fetchedModels||[]).map(m=>({id:m.id,owned_by:m.providerId||m.provider||'provider'}))];
       } else if(p.name==='mine_list_teams') {
-        output=(state.teams||[]).filter(t=>t.enabled!==false).map(t=>({id:t.id,name:t.name,slug:t.slug,model:'mine/team/'+(t.slug||t.id)}));
+        output=(state.teams||[]).filter(t=>t.enabled!==false).map(t=>{
+          const nodes=Array.isArray(t.nodes)?t.nodes:[];
+          const configuredNodes=nodes.filter(n=>n&&n.enabled!==false&&['planner','worker','agent','synthesizer'].includes(n.type)).map(n=>({
+            id:String(n.id||''),
+            role:String(n.type),
+            specialty:n.specialty?String(n.specialty):null,
+            model:n.model?String(n.model):null,
+            configured:true
+          }));
+          return {
+            id:t.id,
+            name:t.name,
+            slug:t.slug,
+            model:'mine/team/'+(t.slug||t.id),
+            configuredRoles:Array.from(new Set(configuredNodes.map(n=>n.role))),
+            configuredNodes,
+            workerTemplates:configuredNodes.filter(n=>n.role==='worker')
+          };
+        });
       } else if(p.name==='mine_chat_completion') {
         const chatBody={model:String(args.model||''),messages:Array.isArray(args.messages)?args.messages:[],max_tokens:Math.max(1,Math.min(8192,Number(args.max_tokens)||2048)),temperature:args.temperature==null?0.7:Number(args.temperature),stream:false};
         if(!chatBody.model||!chatBody.messages.length) throw new Error('model and non-empty messages are required');
