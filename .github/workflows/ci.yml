@@ -19,7 +19,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Run complete test suite
         run: npm test
       - name: Run deployment checks
