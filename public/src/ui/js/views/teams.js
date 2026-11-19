@@ -410,9 +410,11 @@ window.A = window.A || {};
   }
 
   function editorSnapshot() {
+    const nameInput = document.getElementById('te-name');
+    const slugInput = document.getElementById('te-slug');
     return JSON.stringify({
-      name: (document.getElementById('te-name') || {}).value || editorState.team && editorState.team.name || '',
-      slug: (document.getElementById('te-slug') || {}).value || editorState.team && editorState.team.slug || '',
+      name: nameInput ? nameInput.value : (editorState.team && editorState.team.name || ''),
+      slug: slugInput ? slugInput.value : (editorState.team && editorState.team.slug || ''),
       nodes: editorState.nodes || [],
       connections: editorState.connections || [],
     });
