@@ -49,3 +49,18 @@ test('Boss flow tools reject unsafe node types and dangling connections', async 
   assert.throws(() => executeBossFlowTool(team, 'flow_add_node', { node: { id: 'x', type: 'shell' } }), /invalid/i);
   assert.throws(() => executeBossFlowTool(team, 'flow_connect', { from: 'boss', to: 'missing' }), /endpoints/i);
 });
+
+test('Boss flow deletion requires explicit intent and confirmation', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = {
+    id: 'delete-safe', slug: 'delete-safe', name: 'Delete Safe',
+    nodes: [{ id: 'boss', type: 'planner' }, { id: 'worker', type: 'worker' }, { id: 'extra', type: 'tool' }],
+    connections: [{ id: 'edge', from: 'worker', to: 'extra', tp: 'main' }],
+  };
+  assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'extra', confirm: true }, { allowDestructive: false }), /explicit user request/i);
+  assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'extra', confirm: false }, { allowDestructive: true }), /confirm/i);
+  const deleted = executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'extra', confirm: true }, { allowDestructive: true });
+  assert.equal(deleted.removedConnections, 1);
+  assert.equal(team.nodes.some((node) => node.id === 'extra'), false);
+  assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'worker', confirm: true }, { allowDestructive: true }), /last worker/i);
+});
