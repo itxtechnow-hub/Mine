@@ -1060,6 +1060,7 @@ window.A = window.A || {};
         editorState.dragging = id; editorState.selected = id;
         let moved = false;
         const pointerId = e.pointerId, clickX = e.clientX, clickY = e.clientY;
+        try { el.setPointerCapture(pointerId); } catch (_) {}
         const startX = node ? node.x : 0, startY = node ? node.y : 0;
         const onMove = (ev) => {
           if (ev.pointerId !== pointerId || editorState.dragging !== id) return;
@@ -1075,6 +1076,7 @@ window.A = window.A || {};
         const onUp = (ev) => {
           if (ev.pointerId !== pointerId) return;
           editorState.dragging = null;
+          try { if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId); } catch (_) {}
           document.removeEventListener('pointermove', onMove);
           document.removeEventListener('pointerup', onUp);
           document.removeEventListener('pointercancel', onUp);
@@ -1149,6 +1151,7 @@ window.A = window.A || {};
         e.preventDefault();
         let moved = false;
         const pointerId = e.pointerId, startX = e.clientX, startY = e.clientY;
+        try { svgEl.setPointerCapture(pointerId); } catch (_) {}
         const origPanX = editorState.panX || 0, origPanY = editorState.panY || 0;
         editorState.panning = true; svgEl.classList.add('panning');
         const onMove = (ev) => {
@@ -1162,6 +1165,7 @@ window.A = window.A || {};
         const onUp = (ev) => {
           if (ev.pointerId !== pointerId) return;
           editorState.panning = false; svgEl.classList.remove('panning');
+          try { if (svgEl.hasPointerCapture(pointerId)) svgEl.releasePointerCapture(pointerId); } catch (_) {}
           document.removeEventListener('pointermove', onMove);
           document.removeEventListener('pointerup', onUp);
           document.removeEventListener('pointercancel', onUp);
