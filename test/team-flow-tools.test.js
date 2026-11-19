@@ -62,5 +62,6 @@ test('Boss flow deletion requires explicit intent and confirmation', () => {
   const deleted = executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'extra', confirm: true }, { allowDeleteNode: true });
   assert.equal(deleted.removedConnections, 1);
   assert.equal(team.nodes.some((node) => node.id === 'extra'), false);
-  assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'worker', confirm: true }, { allowDeleteNode: true }), /last worker/i);\n  assert.throws(() => executeBossFlowTool(team, 'flow_disconnect', { from: 'worker', to: 'extra', confirm: true }, { allowDisconnect: false }), /explicit user request/i);
+  assert.throws(() => executeBossFlowTool(team, 'flow_delete_node', { nodeId: 'worker', confirm: true }, { allowDeleteNode: true }), /last worker/i);
+  assert.throws(() => executeBossFlowTool(team, 'flow_disconnect', { from: 'worker', to: 'extra', confirm: true }, { allowDisconnect: false }), /explicit user request/i);
 });
