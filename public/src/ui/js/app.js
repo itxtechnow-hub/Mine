@@ -1368,6 +1368,9 @@ async function hydrateUnlockedState() {
   S.modelQueue = (await window.vault.store.get('modelQueue', [])) || [];
   S.activeTeamId = (await window.vault.store.get('activeTeamId', null)) || null;
   S.teams = (await window.vault.store.get('teams', [])) || [];
+  const automationState = await window.vault.automation.get();
+  S.automationConfig = (automationState && automationState.config) || {};
+  S.automationHistory = (automationState && automationState.history) || [];
   S.blockedModels = (await window.vault.store.get('blockedModels', [])) || [];
   S.analytics = (await window.vault.analytics.get()) || S.analytics;
 

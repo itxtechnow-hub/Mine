@@ -1,6 +1,6 @@
 'use strict';
 (function () {
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>\"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;' }[c]));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>\"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   function renderAutomation() {
     const S = window.S || {};
     const cfg = S.automationConfig || { enabled:false, frequency:'daily', time:'03:00', day:0 };
