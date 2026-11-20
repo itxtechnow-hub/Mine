@@ -52,6 +52,43 @@ test('Team never silently selects an arbitrary discovered model', async () => {
 });
 
 
+test('Boss inherits the connected Front Agent model when its own model is blank', async () => {
+  const seen = [];
+  const team = {
+    id: 'front-model-team',
+    slug: 'front-model-team',
+    nodes: [
+      { id: 'front', type: 'agent', model: 'provider/front-model' },
+      { id: 'boss', type: 'planner', model: '' },
+      { id: 'worker', type: 'worker', model: 'provider/worker-model', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth-model' },
+    ],
+    connections: [{ from: 'front', to: 'boss' }],
+  };
+  const result = await runTeam(team, 'Research the reliability issue', {
+    models: [
+      { id: 'provider/front-model' },
+      { id: 'provider/worker-model' },
+      { id: 'provider/synth-model' },
+    ],
+    availableModels: [
+      { id: 'provider/front-model' },
+      { id: 'provider/worker-model' },
+      { id: 'provider/synth-model' },
+    ],
+    modelQueue: [],
+    callModel: async (modelId, prompt, options) => {
+      seen.push({ modelId, role: options.role });
+      if (options.role === 'planner') return { text: '[{"part":"Inspect provider failover","specialty":"general"}]' };
+      if (options.role === 'worker') return { text: 'Worker finding.' };
+      if (options.role === 'synthesizer') return { text: 'Final synthesis.' };
+      return { text: 'ok' };
+    },
+  });
+  assert.ok(seen.some((call) => call.role === 'planner' && call.modelId === 'provider/front-model'));
+  assert.strictEqual(result.final, 'Final synthesis.');
+});
+
 test('Central synthesizer returns an organized answer and excludes raw worker failures', async () => {
   const team = {
     id: 'synthesis-team',
