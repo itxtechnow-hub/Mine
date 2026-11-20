@@ -190,6 +190,35 @@ test('models endpoint hides models whose provider has no usable key', async () =
   }
 });
 
+test('Cloudflare Workers AI requests include the configured AI Gateway ID header', async () => {
+  let receivedGatewayId = null;
+  const upstream = http.createServer((req, res) => {
+    receivedGatewayId = req.headers['cf-aig-gateway-id'] || null;
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ id: 'cf-test', choices: [{ message: { role: 'assistant', content: 'ok' } }] }));
+    });
+  });
+  await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const upstreamPort = upstream.address().port;
+  const gateway = createGateway({
+    keys: [{ id: 'cf-key', provider: 'cloudflare-workers-ai', key: 'cf-token', status: 'ACTIVE', enabled: true }],
+    providers: [{ id: 'cloudflare-workers-ai', name: 'Cloudflare Workers AI', url: 'http://127.0.0.1:' + upstreamPort + '/ai/v1', gatewayId: 'mine-ai-gateway' }],
+    models: [{ id: 'cloudflare-workers-ai/@cf/meta/llama-test', provider: 'cloudflare-workers-ai', rawId: '@cf/meta/llama-test' }],
+    settings: { host: '127.0.0.1', port: 4595, vkey: 1, gatewayApiKey: 'sk-test-key' },
+  });
+  await gateway.start();
+  try {
+    const response = await post(4595, '/v1/chat/completions', { model: 'cloudflare-workers-ai/@cf/meta/llama-test', messages: [{ role: 'user', content: 'test' }] }, 'sk-test-key');
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(receivedGatewayId, 'mine-ai-gateway');
+  } finally {
+    await gateway.stop();
+    await new Promise((resolve) => upstream.close(resolve));
+  }
+});
+
 test('gateway returns 404 for an unknown route', async () => {
   const gateway = createGateway({
     keys: [],
