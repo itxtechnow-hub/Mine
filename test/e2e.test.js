@@ -373,6 +373,10 @@ test('team delegates rotate keys after a 429 instead of failing the worker', asy
   assert.strictEqual(res.status, 200);
   const json = await res.json();
   assert.match(json.choices[0].message.content, /echo:good-model/);
+  assert.ok(
+    seen.some((entry) => entry.auth === 'Bearer team-key-limited'),
+    'the limited key must actually be attempted; attempts=' + JSON.stringify(seen.filter((entry) => entry.auth.includes('team-key-'))),
+  );
   const keys = (await rpc('store:get', 'keys')).result;
   const limited = keys.find((k) => k.key === 'team-key-limited');
   const good = keys.find((k) => k.key === 'team-key-good');
