@@ -348,6 +348,13 @@ test('team delegates rotate keys after a 429 instead of failing the worker', asy
     { key: 'team-key-limited', provider: 'retrymock' },
     { key: 'team-key-good', provider: 'retrymock' },
   ]);
+  // Make the rate-limited key the deterministic first candidate. Key ordering
+  // is based on usage/latency, not insertion order.
+  const retryKeys = (await rpc('store:get', 'keys')).result;
+  await rpc('store:set', 'keys', retryKeys.map((key) => (
+    key.key === 'team-key-good' ? { ...key, usageToday: 100 } :
+    key.key === 'team-key-limited' ? { ...key, usageToday: 0 } : key
+  )));
   await rpc('store:set', 'teams', [{
     id: 'retry-team',
     slug: 'retry',
