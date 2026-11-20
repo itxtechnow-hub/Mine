@@ -101,6 +101,10 @@ function startUpstream() {
             usage: { total_tokens: 12 },
           }));
         }
+        if ((parsed.messages || []).some((message) => String(message.content || '').includes('provider health results'))) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({ id: 'maintenance-analysis', choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify({ summary: 'Provider health review completed.', recommendations: [] }) } }] }));
+        }
         if (parsed.stream) {
           res.writeHead(200, { 'content-type': 'text/event-stream' });
           res.write('data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n');
@@ -246,6 +250,25 @@ test('console can configure a provider, keys, models and the queue', async () =>
   assert.strictEqual(cfg.result.apiKey, '');
 });
 
+test('automation validates the selected model and runs an AI-assisted provider review', async () => {
+  const models = await rpc('store:get', 'fetchedModels');
+  assert.ok(Array.isArray(models.result) && models.result.some((m) => m.id === 'mock/good-model'));
+  const saved = await rpc('automation:save', { enabled: true, frequency: 'weekly', day: 2, modelId: 'mock/good-model' });
+  assert.strictEqual(saved.result.success, true);
+  assert.strictEqual(saved.result.config.modelId, 'mock/good-model');
+  const invalid = await rpc('automation:save', { enabled: true, frequency: 'daily', modelId: 'not-in-catalog' });
+  assert.strictEqual(invalid.result.success, false);
+  const report = await rpc('automation:run');
+  assert.strictEqual(report.result.success, true);
+  assert.strictEqual(report.result.report.modelId, 'mock/good-model');
+  assert.ok(report.result.report.analysis && report.result.report.analysis.summary);
+  const history = await rpc('automation:get');
+  assert.strictEqual(history.result.history[0].id, report.result.report.id);
+});
+test('automation cron endpoint rejects requests without its bearer secret', async () => {
+  const response = await fetch(base + '/api/automation');
+  assert.strictEqual(response.status, 401);
+});
 test('settings saves keep the gateway key', async () => {
   const s = await rpc('store:get', 'settings');
   assert.ok(!s.result.gatewayApiKey);
