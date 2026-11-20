@@ -18,6 +18,10 @@
     "api/mcp.js": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "api/automation.js": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [
@@ -64,6 +68,12 @@
           "value": "no-cache"
         }
       ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/automation",
+      "schedule": "0 3 * * *"
     }
   ]
 }
