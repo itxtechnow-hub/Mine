@@ -291,6 +291,7 @@
       get: safe('automation:get', { config: {}, history: [] }),
       save: safe('automation:save', fail),
       run: safe('automation:run', fail),
+      approve: safe('automation:approve', fail),
     },
 
     teams: {

@@ -27,8 +27,9 @@
     const analysis = report.analysis;
     const recommendations = analysis && Array.isArray(analysis.recommendations) ? analysis.recommendations : [];
     const fixes = recommendations.map((x) => '<p style="font-size:13px"><b>' + esc(x.provider) + '</b> · ' + esc(x.severity) + ': ' + esc(x.issue) + '<br><span class="mute">' + esc(x.action) + ' · Owner approval required</span></p>').join('');
+    const proposals = (report.proposals || []).map((p) => '<div style="padding:10px 0;border-top:1px solid var(--line)"><b>' + esc(p.provider) + '</b><p class="mute" style="font-size:12px">Restore the built-in catalog endpoint: ' + esc(p.to) + '</p>' + (p.status === 'pending' ? '<button class="btn sm" data-a="automation-approve" data-report-id="' + esc(report.id) + '" data-proposal-id="' + esc(p.id) + '">Approve endpoint repair</button>' : '<span class="chip ok">Approved</span>') + '</div>').join('');
     root.innerHTML = '<section class="card" style="padding:18px"><h3>Maintenance report</h3><p>' + report.working + ' working · ' + report.failed + ' failed · ' + report.tested + ' checked</p>' + rows +
-      (analysis ? '<h4>Model analysis</h4><p>' + esc(analysis.summary) + '</p>' + (fixes || '<p class="mute">No additional repairs recommended.</p>') : '') +
+      (analysis ? '<h4>Model analysis</h4><p>' + esc(analysis.summary) + '</p>' + (fixes || '<p class="mute">No additional repairs recommended.</p>') : '') + (proposals ? '<h4>Verified endpoint repairs</h4>' + proposals : '') +
       (report.analysisError ? '<p class="mute">Model analysis unavailable: ' + esc(report.analysisError) + '</p>' : '') +
       (!report.failed && !recommendations.length ? '<p class="mute">No provider errors found.</p>' : '') + '</section>';
   }
@@ -53,6 +54,13 @@
     window.S.automationConfig = res.config;
     if (window.toast) window.toast('Schedule saved. Production runs at approximately 03:00 UTC.');
   }
+  async function approveRepair(button) {
+    const res = await window.vault.automation.approve({ reportId: button.dataset.reportId, proposalId: button.dataset.proposalId });
+    if (!res || !res.success) { if (window.toast) window.toast(res && res.error || 'Repair approval failed'); return; }
+    const report = (window.S.automationHistory || []).find((item) => item.id === button.dataset.reportId);
+    if (report) { const proposal = (report.proposals || []).find((item) => item.id === button.dataset.proposalId); if (proposal) proposal.status = 'approved'; renderReport(report); }
+    if (window.toast) window.toast('Provider endpoint restored from the trusted catalog');
+  }
   window.V = window.V || {}; window.V.automation = renderAutomation;
-  window.A = window.A || {}; window.A['automation-run'] = runCheck; window.A['automation-save'] = saveSchedule;
+  window.A = window.A || {}; window.A['automation-run'] = runCheck; window.A['automation-save'] = saveSchedule; window.A['automation-approve'] = approveRepair;
 })();

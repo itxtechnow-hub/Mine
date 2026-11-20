@@ -265,6 +265,14 @@ test('automation validates the selected model and runs an AI-assisted provider r
   const history = await rpc('automation:get');
   assert.strictEqual(history.result.history[0].id, report.result.report.id);
 });
+test('provider endpoint repairs require explicit approval and revalidate the catalog URL', async () => {
+  await rpc('store:set', 'providers', [{ id: 'openai', url: 'https://wrong.example/v1' }]);
+  await rpc('store:set', 'automationHistory', [{ id: 'repair-report', proposals: [{ id: 'repair-1', provider: 'openai', field: 'url', from: 'https://wrong.example/v1', to: 'https://api.openai.com/v1', status: 'pending' }] }]);
+  const approved = await rpc('automation:approve', { reportId: 'repair-report', proposalId: 'repair-1' });
+  assert.strictEqual(approved.result.success, true);
+  assert.strictEqual((await rpc('store:get', 'providers')).result[0].url, 'https://api.openai.com/v1');
+  assert.strictEqual((await rpc('automation:get')).result.history[0].proposals[0].status, 'approved');
+});
 test('automation cron endpoint rejects requests without its bearer secret', async () => {
   const response = await fetch(base + '/api/automation');
   assert.strictEqual(response.status, 401);
