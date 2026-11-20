@@ -354,7 +354,7 @@ window.A = window.A || {};
       { id: 'worker-1', type: 'worker', specialty: 'frontend', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'Frontend Specialist. Complete the assigned UI/frontend task.', x: 770, y: 50 },
       { id: 'worker-2', type: 'worker', specialty: 'backend', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'Backend Specialist. Complete the assigned server/data task.', x: 770, y: 190 },
       { id: 'synth-1', type: 'synthesizer', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'You are the synthesizer. Merge all worker outputs into one coherent answer and return to Agent.', x: 1000, y: 120 },
-      { id: 'model-1', type: 'model', model: 'gpt-4o-mini', x: 262, y: 250 },
+      { id: 'model-1', type: 'model', model: '', x: 262, y: 250 },
       { id: 'mem-1', type: 'memory', syncWithAgent: true, windowSize: 10, systemPrompt: 'Agent shared context memory store.', x: 307, y: 250 },
       { id: 'tool-1', type: 'tool', enabledTools: ['calculator', 'memory_list', 'memory_search', 'memory_read'], x: 362, y: 250 },
       { id: 'mcp-1', type: 'mcp', serverName: 'filesystem', param: '.', tools: 'read_file, write_file, list_directory, search_files', scope: 'all-models', systemPrompt: 'Filesystem MCP Server: Read and write workspace files safely.', x: 412, y: 250 },
@@ -822,23 +822,13 @@ window.A = window.A || {};
           </select>
         ` : ''}
 
-        ${node.type === 'agent' ? `
-          <label class="lbl">LLM Engine</label>
-          <div class="perm-row">
-            <div>
-              <div style="font-weight:700;font-size:12px">Chat Model Connection</div>
-              <div class="tool-desc">Powered by connected Chat Model node: <b>${escapeHtml(connectedModel ? connectedModel.split('/').pop() : 'model-1')}</b></div>
-            </div>
-            <span class="chip ok" style="font-size:11px">${escapeHtml(connectedModel ? connectedModel.split('/').pop() : 'model-1')}</span>
-          </div>
-        ` : ''}
-
-        ${(node.type === 'planner' || node.type === 'worker' || node.type === 'synthesizer' || node.type === 'model') ? `
-          <label class="lbl">${node.type === 'model' ? 'Model Provider &amp; Model ID' : 'Assigned Model'}</label>
+        ${(node.type === 'agent' || node.type === 'planner' || node.type === 'worker' || node.type === 'synthesizer' || node.type === 'model') ? `
+          <label class="lbl">${node.type === 'model' ? 'Model Provider &amp; Model ID' : node.type === 'agent' ? 'Front / Agent Model' : node.type === 'planner' ? 'Boss / Planner Model' : node.type === 'worker' ? 'Worker Model' : 'Synthesizer Model'}</label>
           <select class="input" data-a="prop-model" data-id="${escapeAttr(node.id)}">
             <option value="">(Use Model Queue fallback)</option>
             ${modelOptions}
           </select>
+          ${node.type === 'agent' ? '<div class="tool-desc">The Boss inherits this model when its own model is not assigned. It can also perform final review.</div>' : ''}
         ` : ''}
 
         ${node.type === 'worker' ? `
