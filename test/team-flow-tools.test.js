@@ -116,3 +116,41 @@ test('flow validation requires a planner and worker and detects duplicate graph 
   assert.ok(result.problems.some((problem) => /duplicate node ID/i.test(problem)));
   assert.ok(result.problems.some((problem) => /cannot connect to itself/i.test(problem)));
 });
+
+test('team_create can persist exactly two workers with distinct active models', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  let created = null;
+  const result = executeBossFlowTool(
+    { id: 'source', slug: 'source', name: 'Source', nodes: [], connections: [] },
+    'team_create',
+    { name: 'Production Test Team', slug: 'production-test-team', plannerModel: 'provider/boss', workerModel: 'provider/research', secondWorkerModel: 'provider/analysis', workerCount: 2 },
+    { allowedModels: ['provider/boss', 'provider/research', 'provider/analysis'], onTeamCreate: (team) => { created = team; return true; } },
+  );
+  assert.equal(result.success, true);
+  assert.equal(result.persisted, true);
+  assert.equal(created.nodes.filter((node) => node.type === 'worker').length, 2);
+  assert.equal(created.nodes.find((node) => node.id === 'worker-1').model, 'provider/research');
+  assert.equal(created.nodes.find((node) => node.id === 'worker-2').model, 'provider/analysis');
+  assert.ok(created.connections.some((edge) => edge.from === 'boss' && edge.to === 'worker-1'));
+  assert.ok(created.connections.some((edge) => edge.from === 'boss' && edge.to === 'worker-2'));
+  assert.ok(created.connections.some((edge) => edge.from === 'worker-1' && edge.to === 'synth'));
+  assert.ok(created.connections.some((edge) => edge.from === 'worker-2' && edge.to === 'synth'));
+});
+
+test('team_create rejects a second worker without a distinct active model', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  assert.throws(() => executeBossFlowTool(
+    { id: 'source', slug: 'source', name: 'Source', nodes: [], connections: [] },
+    'team_create',
+    { name: 'Two Workers', workerCount: 2, plannerModel: 'provider/boss', workerModel: 'provider/worker' },
+    { allowedModels: ['provider/boss', 'provider/worker'], onTeamCreate: () => true },
+  ), /second, different active model/i);
+});
+
+test('flow node model assignments reject all models when no active model is available', () => {
+  const { executeBossFlowTool } = require('../lib/gateway/tools');
+  const team = { id: 'empty-models', slug: 'empty-models', name: 'Empty Models', nodes: [{ id: 'boss', type: 'planner' }], connections: [] };
+  assert.throws(() => executeBossFlowTool(team, 'flow_add_node', {
+    node: { id: 'worker', type: 'worker', model: 'provider/stale' },
+  }, { allowedModels: [] }), /active Mine gateway key/i);
+});
