@@ -287,6 +287,12 @@
       setQueue: safe('modelQueue:set', fail),
     },
 
+    automation: {
+      get: safe('automation:get', { config: {}, history: [] }),
+      save: safe('automation:save', fail),
+      run: safe('automation:run', fail),
+    },
+
     teams: {
       get: safe('teams:get', []),
       set: safe('teams:set', fail),

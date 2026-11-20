@@ -34,7 +34,7 @@ const S = {
     cd: 60,
     autoStart: 0,
     theme: 'light',
-    clusterDensity: 'comfortable',
+    clusterDensity: 'compact',
   },
   period: 'today',
   analytics: { daily: {}, weekly: {}, monthly: {}, yearly: {}, allTime: { requests: 0, tokens: 0, totalLatency: 0 } },

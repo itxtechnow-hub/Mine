@@ -596,7 +596,7 @@ function renderOverview() {
 
   const { S, esc, fmt, maskKey, getProvider, gwUrl, STL } = getAppContext();
 
-  let density = (S.settings && S.settings.clusterDensity) || 'comfortable';
+  let density = (S.settings && S.settings.clusterDensity) || 'compact';
   if (density === 'ultra-small') density = 'ultra';
   const period = S.period || 'today';
   const now = new Date();
@@ -727,6 +727,8 @@ function renderOverview() {
     }).join('');
   }
 
+  const modelOfDay = (S.models || []).filter((m) => m && m.free === 1 && m.enabled !== false).sort((a, b) => String(b.lastSeenAt || b.discoveredAt || '').localeCompare(String(a.lastSeenAt || a.discoveredAt || '')))[0];
+
   return `
     <div class="gw-banner">
       <div>
@@ -752,6 +754,12 @@ function renderOverview() {
           `<button data-a="set-period" data-v="${k}" aria-pressed="${(S.period || 'today') === k}">${l}</button>`
         ).join('')}
       </div>
+    </div>
+
+    <div class="card" style="margin:0 0 16px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:22px">✦</div>
+      <div style="flex:1;min-width:180px"><b>Model of the Day</b><div class="mute" style="font-size:12px">Only models explicitly marked free by provider metadata are eligible.</div></div>
+      ${modelOfDay ? `<div><b>${esc(modelOfDay.displayName || modelOfDay.id)}</b><div class="mono mute" style="font-size:11px">${esc(modelOfDay.id)} · ${esc(modelOfDay.provider || 'provider')}</div></div><span class="chip ok">Free metadata</span>` : `<span class="mute">No verified free model discovered yet. Refresh Models after adding a provider key.</span>`}
     </div>
 
     <div class="stats">

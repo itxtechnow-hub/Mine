@@ -26,6 +26,7 @@ const PAGE_TITLES = {
   queue: 'Model Queue',
   settings: 'Settings',
   teams: 'Teams',
+  automation: 'Automation',
   memory: 'Cloud Memory',
 };
 
@@ -37,6 +38,7 @@ const PAGE_SUBTITLES = {
   queue: 'Routing order and fallback chain',
   settings: 'Gateway configuration and preferences',
   teams: 'Orchestrate multiple models as one team',
+  automation: 'Provider health checks and maintenance reports',
   memory: 'Persistent shared and private memory for Mine agents and MCP clients',
 };
 
