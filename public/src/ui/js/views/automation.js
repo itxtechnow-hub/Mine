@@ -3,7 +3,7 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   function renderAutomation() {
     const S = window.S || {};
-    const cfg = S.automationConfig || { enabled:false, frequency:'daily', day:0, modelId:'' };
+    const cfg = S.automationConfig || { enabled:false, frequency:'daily', day:0, modelId:'', time:'03:00', timezone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' };
     const history = Array.isArray(S.automationHistory) ? S.automationHistory : [];
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const models = (S.models || []).filter((m) => m && m.id);
@@ -13,10 +13,11 @@
       '<div class="form-group"><label>Maintenance model</label><select class="input" id="automation-model"><option value="">Select a model…</option>' + options + '</select><span class="mute" style="font-size:11px">Inference runs through your Mine gateway and may consume provider quota.</span></div>' +
       '<button class="btn p" data-a="automation-run" id="automation-run">Run health check now</button>' +
       (latest ? '<p class="mute">Last run: ' + esc(new Date(latest.timestamp).toLocaleString()) + ' · ' + latest.working + '/' + latest.tested + ' keys working</p>' : '') + '</section>' +
-      '<section class="card" style="padding:20px;margin-bottom:16px"><h3>Maintenance schedule</h3><p class="mute">Production runs daily at approximately 03:00 UTC. Vercel Hobby timing can drift within the hour. Choose daily or one weekly day. Custom run times are not available on this free-plan schedule.</p>' +
+      '<section class="card" style="padding:20px;margin-bottom:16px"><h3>Maintenance schedule</h3><p class="mute">Runs at the local time you choose, even when this page is closed. Durable queue scheduling supports daily and weekly schedules on the Vercel Hobby plan.</p>' +
       '<label class="set"><span><b>Enable scheduled maintenance</b><br><span class="mute">Uses the selected model and latest saved provider state.</span></span><input id="automation-enabled" type="checkbox" ' + (cfg.enabled ? 'checked' : '') + '></label>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px"><div class="form-group"><label>Frequency</label><select class="input" id="automation-frequency"><option value="daily" ' + (cfg.frequency === 'daily' ? 'selected' : '') + '>Daily</option><option value="weekly" ' + (cfg.frequency === 'weekly' ? 'selected' : '') + '>Weekly</option></select></div>' +
-      '<div class="form-group"><label>Day (weekly)</label><select class="input" id="automation-day">' + days.map((d,i) => '<option value="' + i + '" ' + (Number(cfg.day) === i ? 'selected' : '') + '>' + d + '</option>').join('') + '</select></div></div>' +
+      '<div class="form-group"><label>Day (weekly)</label><select class="input" id="automation-day">' + days.map((d,i) => '<option value="' + i + '" ' + (Number(cfg.day) === i ? 'selected' : '') + '>' + d + '</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Run time (your local time)</label><input class="input" type="time" id="automation-time" value="' + esc(cfg.time || '03:00') + '"></div></div>' +
       '<button class="btn" data-a="automation-save" style="margin-top:14px">Save schedule</button></section>' +
       '<section class="card" style="padding:20px"><h3>Model of the Day</h3><p class="mute">Only models explicitly marked free in their own metadata qualify. A provider having a free tier does not make every model free.</p>' + models.filter((m) => m.free === 1).length + ' explicitly free model(s) discovered.</section><section id="automation-report" style="margin-top:16px"></section>';
   }
@@ -48,11 +49,11 @@
     finally { if (btn) { btn.disabled = false; btn.textContent = 'Run health check now'; } }
   }
   async function saveSchedule() {
-    const input = { enabled: !!document.getElementById('automation-enabled').checked, frequency: document.getElementById('automation-frequency').value, day: Number(document.getElementById('automation-day').value || 0), modelId: document.getElementById('automation-model').value || '' };
+    const input = { enabled: !!document.getElementById('automation-enabled').checked, frequency: document.getElementById('automation-frequency').value, day: Number(document.getElementById('automation-day').value || 0), time: document.getElementById('automation-time').value || '03:00', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', modelId: document.getElementById('automation-model').value || '' };
     const res = await window.vault.automation.save(input);
     if (!res || !res.success) { if (window.toast) window.toast(res && res.error || 'Could not save schedule'); return; }
     window.S.automationConfig = res.config;
-    if (window.toast) window.toast('Schedule saved. Production runs at approximately 03:00 UTC.');
+    if (window.toast) window.toast(res.nextRunAt ? 'Schedule saved. Next run: ' + new Date(res.nextRunAt).toLocaleString() : 'Schedule saved.');
   }
   async function approveRepair(button) {
     const res = await window.vault.automation.approve({ reportId: button.dataset.reportId, proposalId: button.dataset.proposalId });

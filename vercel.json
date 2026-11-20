@@ -21,6 +21,26 @@
     },
     "api/automation.js": {
       "maxDuration": 60
+    },
+    "api/agent-worker.js": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "mine-agent-tasks"
+        }
+      ]
+    },
+    "api/automation-worker.js": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "mine-automation-schedule"
+        }
+      ]
     }
   },
   "rewrites": [
@@ -67,12 +87,6 @@
           "value": "no-cache"
         }
       ]
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/automation",
-      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -1378,6 +1378,8 @@ async function hydrateUnlockedState() {
   const automationState = await window.vault.automation.get();
   S.automationConfig = (automationState && automationState.config) || {};
   S.automationHistory = (automationState && automationState.history) || [];
+  const skillState = await window.vault.skills.get();
+  S.skills = (skillState && skillState.skills) || [];
   S.blockedModels = (await window.vault.store.get('blockedModels', [])) || [];
   S.analytics = (await window.vault.analytics.get()) || S.analytics;
 

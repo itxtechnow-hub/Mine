@@ -615,3 +615,140 @@ test('Team model IDs resolve configured teams by slug even when the ID differs',
   assert.deepStrictEqual(ids, ['mine/team/research-team']);
   assert.strictEqual(findTeam([team], ids[0]), team);
 });
+
+test('Team Leader exposes durable agent tools and can create a worker in the live flow', async () => {
+  const calls = [];
+  const team = {
+    id: 'durable-agent-team', slug: 'durable-agent-team', name: 'Durable agent team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader', permissions: { flow: true } },
+      { id: 'worker', type: 'worker', model: 'provider/worker', specialty: 'general' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ],
+    connections: [],
+  };
+  let plannerCalls = 0;
+  const result = await runTeam(team, 'Create a durable research subagent', {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }],
+    modelQueue: [],
+    agentOperations: {
+      spawn: async (currentTeam, args) => {
+        calls.push(args);
+        currentTeam.nodes.push({ id: 'agent-persisted', type: 'worker', model: args.model_id, name: args.name });
+        currentTeam.connections.push({ id: 'edge-agent', from: 'leader', to: 'agent-persisted', tp: 'main' });
+        return { success: true, agentId: 'agent-persisted', jobId: 'job-persisted', status: 'queued' };
+      },
+      list: async () => [], sendMessage: async () => ({}), wait: async () => ({}), stop: async () => ({}), delete: async () => ({}),
+    },
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        const tools = options.tools || [];
+        if (plannerCalls === 0) {
+          plannerCalls += 1;
+          assert.ok(tools.some((tool) => tool.function && tool.function.name === 'agent_spawn'));
+          return { text: '', toolCalls: [{ id: 'agent-call', type: 'function', function: { name: 'agent_spawn', arguments: JSON.stringify({ name: 'Research Agent', model_id: 'provider/worker', task: 'Research queue durability' }) } }] };
+        }
+        return { text: '[{"part":"Continue with the assigned research","specialty":"general"}]' };
+      }
+      if (options.role === 'worker') return { text: 'Worker summary.' };
+      if (options.role === 'synthesizer') return { text: 'Completed the team task and queued the persistent agent.' };
+      return { text: 'ok' };
+    },
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].name, 'Research Agent');
+  assert.ok(team.nodes.some((node) => node.id === 'agent-persisted' && node.type === 'worker'));
+  assert.ok(team.connections.some((edge) => edge.to === 'agent-persisted'));
+  assert.notEqual(result.status, 'failed');
+});
+
+test('Team Leader can install a GitHub skill and attach its node to the existing flow', async () => {
+  const installed = [];
+  const team = {
+    id: 'skill-team', slug: 'skill-team', name: 'Skill team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader', permissions: { flow: true } },
+      { id: 'worker', type: 'worker', model: 'provider/worker' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ], connections: [],
+  };
+  let plannerCalls = 0;
+  await runTeam(team, 'Install the research skill', {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }], modelQueue: [],
+    skillOperations: {
+      install: async (url) => { installed.push(url); return { success: true, skill: { id: 'skill-123', name: 'Research Skill', description: 'Research guidance' } }; },
+      list: async () => [], read: async () => ({ content: '# Research Skill' }), remove: async () => ({ success: true }),
+    },
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        if (plannerCalls++ === 0) {
+          assert.ok((options.tools || []).some((tool) => tool.function && tool.function.name === 'skill_install'));
+          return { text: '', toolCalls: [{ id: 'skill-call', type: 'function', function: { name: 'skill_install', arguments: JSON.stringify({ url: 'https://github.com/example/repo/blob/main/SKILL.md' }) } }] };
+        }
+        return { text: '[{"part":"Use the installed research skill","specialty":"general"}]' };
+      }
+      if (options.role === 'worker') return { text: 'Research complete.' };
+      if (options.role === 'synthesizer') return { text: 'Skill installed.' };
+      return { text: 'ok' };
+    },
+  });
+  assert.deepEqual(installed, ['https://github.com/example/repo/blob/main/SKILL.md']);
+  assert.ok(team.nodes.some((node) => node.type === 'skill' && node.skillId === 'skill-123'));
+  assert.ok(team.connections.some((edge) => edge.to && edge.to.startsWith('skillnode_')));
+});
+
+test('Team Leader can install a remote MCP link as a disabled node pending user approval', async () => {
+  const validated = [];
+  const team = {
+    id: 'mcp-team', slug: 'mcp-team', name: 'MCP team',
+    nodes: [
+      { id: 'leader', type: 'planner', model: 'provider/leader', permissions: { flow: true } },
+      { id: 'worker', type: 'worker', model: 'provider/worker' },
+      { id: 'synth', type: 'synthesizer', model: 'provider/synth' },
+    ], connections: [],
+  };
+  let plannerCalls = 0;
+  await runTeam(team, 'Install this MCP server', {
+    models: [{ id: 'provider/leader' }, { id: 'provider/worker' }, { id: 'provider/synth' }], modelQueue: [],
+    mcpOperations: { validate: async (url) => { validated.push(url); return { url: new URL('https://mcp.example.com/mcp') }; } },
+    callModel: async (modelId, prompt, options) => {
+      if (options.role === 'planner') {
+        if (plannerCalls++ === 0) {
+          assert.ok((options.tools || []).some((tool) => tool.function && tool.function.name === 'mcp_install'));
+          return { text: '', toolCalls: [{ id: 'mcp-call', type: 'function', function: { name: 'mcp_install', arguments: JSON.stringify({ name: 'Research MCP', url: 'https://mcp.example.com/mcp' }) } }] };
+        }
+        return { text: '[{"part":"MCP server added pending approval","specialty":"general"}]' };
+      }
+      if (options.role === 'worker') return { text: 'Worker complete.' };
+      if (options.role === 'synthesizer') return { text: 'MCP server saved for approval.' };
+      return { text: 'ok' };
+    },
+  });
+  assert.deepEqual(validated, ['https://mcp.example.com/mcp']);
+  const node = team.nodes.find((item) => item.type === 'mcp');
+  assert.ok(node);
+  assert.equal(node.enabled, false);
+  assert.equal(node.requiresApproval, true);
+  assert.equal(node.serverParams.remote, 'https://mcp.example.com/mcp');
+  assert.ok(team.connections.some((edge) => edge.to === node.id));
+});
+
+test('persistent subagent flow nodes are not auto-run as ordinary Team workers', async () => {
+  const calledModels = [];
+  const team = { id: 'persistent-exclusion', nodes: [
+    { id: 'regular-worker', type: 'worker', model: 'provider/regular' },
+    { id: 'agent-worker', type: 'worker', persistentAgent: true, agentId: 'agent-worker', model: 'provider/persistent' },
+  ], connections: [] };
+  const result = await runTeam(team, 'Run the normal Team workflow', {
+    models: [{ id: 'provider/regular' }, { id: 'provider/persistent' }], modelQueue: [],
+    callModel: async (modelId) => { calledModels.push(modelId); return { text: 'done' }; },
+  });
+  assert.ok(calledModels.length > 0);
+  assert.ok(calledModels.every((modelId) => modelId === 'provider/regular'));
+  assert.equal(result.nodes.length, 1);
+  assert.equal(result.nodes[0].modelId, 'provider/regular');
+  const invalid = validateTeam({ id: 'only-persistent', name: 'Only persistent', slug: 'only-persistent', nodes: [
+    { id: 'agent-only', type: 'worker', persistentAgent: true, model: 'provider/persistent' },
+  ], connections: [] });
+  assert.ok(invalid.some((problem) => /at least one worker/.test(problem)));
+});

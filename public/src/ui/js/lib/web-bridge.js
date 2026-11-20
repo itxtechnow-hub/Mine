@@ -294,6 +294,22 @@
       approve: safe('automation:approve', fail),
     },
 
+    skills: {
+      get: safe('skills:get', { skills: [] }),
+      install: safe('skills:install', fail),
+      read: safe('skills:read', fail),
+      setEnabled: safe('skills:setEnabled', fail),
+      remove: safe('skills:remove', fail),
+    },
+
+    agents: {
+      get: safe('agents:get', { agents: [], jobs: [] }),
+      update: safe('agents:update', fail),
+      message: safe('agents:message', fail),
+      stop: safe('agents:stop', fail),
+      delete: safe('agents:delete', fail),
+    },
+
     teams: {
       get: safe('teams:get', []),
       set: safe('teams:set', fail),

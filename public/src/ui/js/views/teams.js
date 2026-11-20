@@ -30,6 +30,7 @@ window.A = window.A || {};
     model: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16M7 7l10 10M17 7L7 17"/></svg>',
     memory: '<svg viewBox="0 0 48 48" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><ellipse cx="24" cy="12" rx="13" ry="5" fill="currentColor" fill-opacity="0.25"/><path d="M11 12v24c0 3 6 5 13 5s13-2 13-5V12M11 24c0 3 6 5 13 5s13-2 13-5"/></svg>',
     tool: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+    skill: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg>',
     mcp: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>'
   };
 
@@ -37,6 +38,7 @@ window.A = window.A || {};
   const MINI_ICONS = {
     memory: '<svg viewBox="0 0 48 48" width="11" height="11" stroke="currentColor" fill="none" stroke-width="4"><ellipse cx="24" cy="12" rx="13" ry="5" fill="currentColor" fill-opacity="0.3"/><path d="M11 12v24c0 3 6 5 13 5s13-2 13-5V12"/></svg>',
     tool: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+    skill: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg>',
     mcp: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/></svg>'
   };
 
@@ -49,6 +51,17 @@ window.A = window.A || {};
   ];
 
   const BUILTIN_MCP_SERVERS = [
+    {
+      id: 'remote',
+      name: 'Remote MCP (HTTPS Streamable HTTP)',
+      category: 'Remote',
+      package: '',
+      command: '',
+      defaultParam: 'https://your-mcp-server.example/mcp',
+      paramLabel: 'HTTPS MCP endpoint',
+      desc: 'Connects to a remote Streamable HTTP MCP server. The endpoint must use HTTPS and resolve to a public address. Tools are discovered when the server is enabled.',
+      tools: 'Discovered from server',
+    },
     {
       id: 'filesystem',
       name: 'Filesystem (Read & Write Files)',
@@ -170,7 +183,8 @@ window.A = window.A || {};
     { type: 'model', label: 'Chat Model', sub: 'LLM Engine', color: '#8b5cf6', bg: 'rgba(139,92,246,.14)', isSub: true, port: 'model', w: 165, h: 68 },
     { type: 'memory', label: 'Shared Memory', sub: 'Context Store (Synced)', color: '#ec4899', bg: 'rgba(236,72,153,.14)', isSub: true, port: 'memory', w: 165, h: 68 },
     { type: 'tool', label: 'Built-in Tools', sub: 'Grep, Exec, Files', color: '#14b8a6', bg: 'rgba(20,184,166,.14)', isSub: true, port: 'tool', w: 165, h: 68 },
-    { type: 'mcp', label: 'MCP Server', sub: 'Model Context Protocol', color: '#0ea5e9', bg: 'rgba(14,165,233,.14)', isSub: true, port: 'mcp', w: 165, h: 68 }
+    { type: 'mcp', label: 'MCP Server', sub: 'Model Context Protocol', color: '#0ea5e9', bg: 'rgba(14,165,233,.14)', isSub: true, port: 'mcp', w: 165, h: 68 },
+    { type: 'skill', label: 'Skill', sub: 'Installed Instructions', color: '#a78bfa', bg: 'rgba(167,139,250,.14)', isSub: true, port: 'top', w: 165, h: 68 }
   ];
 
   function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -268,7 +282,11 @@ window.A = window.A || {};
     if (a.type === 'synthesizer' && b.type === 'agent') {
       const p1 = getHandlePos(a, 'top');
       const p2 = getHandlePos(b, 'from-synth');
-      const topY = Math.min(a.y, b.y) - 85;
+      // Reserve a routing lane above every node so the return edge never
+      // crosses behind another node, regardless of canvas layout or dragging.
+      const nodes = (editorState && editorState.nodes) || [];
+      const highestNodeTop = nodes.reduce((minY, node) => Math.min(minY, Number(node.y) || 0), Math.min(a.y, b.y));
+      const topY = highestNodeTop - 72;
       return `M ${p1.x} ${p1.y} C ${p1.x} ${topY} ${p2.x} ${topY} ${p2.x} ${p2.y}`;
     }
 
@@ -346,40 +364,12 @@ window.A = window.A || {};
     if (!editor) return;
     editor.classList.remove('hidden');
 
+    // Start every new team with one unconnected coordinator Agent.
+    // Models, tools, memory, MCP, and subagents are added explicitly by the user.
     const defaultNodes = [
-      { id: 'input-1', type: 'input', triggerType: 'chat', systemPrompt: 'Accepts incoming chat messages, API calls, or form submissions.', x: 20, y: 80 },
-      { id: 'output-1', type: 'output', responseType: 'chat', flipped: true, systemPrompt: 'Formats and delivers finalized answer back to chat or API client.', x: 20, y: 200 },
-      { id: 'agent-1', type: 'agent', model: '', systemPrompt: 'Central coordinator. Directs tasks and connects tools, memory, and MCP.', x: 250, y: 120 },
-      { id: 'planner-1', type: 'planner', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'You are the boss. Split the user request into parts tagged by specialty and route them.', x: 530, y: 120 },
-      { id: 'worker-1', type: 'worker', specialty: 'frontend', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'Frontend Specialist. Complete the assigned UI/frontend task.', x: 770, y: 50 },
-      { id: 'worker-2', type: 'worker', specialty: 'backend', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'Backend Specialist. Complete the assigned server/data task.', x: 770, y: 190 },
-      { id: 'synth-1', type: 'synthesizer', model: '', permissions: { memory: true, tool: true, mcp: true }, systemPrompt: 'You are the synthesizer. Merge all worker outputs into one coherent answer and return to Agent.', x: 1000, y: 120 },
-      { id: 'model-1', type: 'model', model: '', x: 262, y: 250 },
-      { id: 'mem-1', type: 'memory', syncWithAgent: true, windowSize: 10, systemPrompt: 'Agent shared context memory store.', x: 307, y: 250 },
-      { id: 'tool-1', type: 'tool', enabledTools: ['calculator', 'memory_list', 'memory_search', 'memory_read'], x: 362, y: 250 },
-      { id: 'mcp-1', type: 'mcp', serverName: 'filesystem', param: '.', tools: 'read_file, write_file, list_directory, search_files', scope: 'all-models', systemPrompt: 'Filesystem MCP Server: Read and write workspace files safely.', x: 412, y: 250 },
-      { id: 'mcp-2', type: 'mcp', serverName: 'fetch', tools: 'fetch_url, convert_html_to_markdown', scope: 'all-models', systemPrompt: 'Fetch MCP Server: Web content reader and markdown converter.', x: 468, y: 250 },
-      { id: 'mcp-3', type: 'mcp', serverName: 'github', tools: 'search_repositories, get_file_contents, create_pull_request', scope: 'all-models', systemPrompt: 'GitHub MCP Server: Search repos and inspect pull requests.', x: 524, y: 250 },
-      { id: 'mcp-4', type: 'mcp', serverName: 'sqlite', param: './data.sqlite', tools: 'read_query, write_query, list_tables', scope: 'all-models', systemPrompt: 'SQLite MCP Server: Query local database files.', x: 580, y: 250 }
+      { id: 'agent-1', type: 'agent', model: '', systemPrompt: 'Main coordinator agent. Handles the chat and can delegate work to configured subagents.', x: 250, y: 120 }
     ];
-
-    const defaultConns = [
-      { from: 'input-1', to: 'agent-1', fp: 'out', tp: 'input' },
-      { from: 'agent-1', to: 'output-1', fp: 'output', tp: 'left' },
-      { from: 'agent-1', to: 'planner-1', fp: 'to-planner', tp: 'left' },
-      { from: 'planner-1', to: 'worker-1', fp: 'right', tp: 'left' },
-      { from: 'planner-1', to: 'worker-2', fp: 'right', tp: 'left' },
-      { from: 'worker-1', to: 'synth-1', fp: 'right', tp: 'left' },
-      { from: 'worker-2', to: 'synth-1', fp: 'right', tp: 'left' },
-      { from: 'synth-1', to: 'agent-1', fp: 'top', tp: 'from-synth' },
-      { from: 'model-1', to: 'agent-1', tp: 'model' },
-      { from: 'mem-1', to: 'agent-1', tp: 'memory' },
-      { from: 'tool-1', to: 'agent-1', tp: 'tool' },
-      { from: 'mcp-1', to: 'agent-1', tp: 'mcp' },
-      { from: 'mcp-2', to: 'agent-1', tp: 'mcp' },
-      { from: 'mcp-3', to: 'agent-1', tp: 'mcp' },
-      { from: 'mcp-4', to: 'agent-1', tp: 'mcp' }
-    ];
+    const defaultConns = [];
 
     editorState = {
       team: team || { id: 'team-' + Date.now(), name: 'New team', slug: 'team-' + Date.now(), enabled: true },
@@ -601,7 +591,8 @@ window.A = window.A || {};
         <g transform="translate(48, 12)">
           <text x="0" y="13" font-size="11.5" font-weight="800" fill="var(--text)">${escapeHtml(n.name || nt.label)}</text>
           <text x="0" y="27" font-size="9.5" font-weight="600" fill="${nt.color}">${escapeHtml(modelText)}</text>
-          <text x="0" y="39" font-size="8.5" fill="var(--text-muted)" class="mono">${escapeHtml(n.id)}</text>
+          ${n.agentId ? '<text x="0" y="51" font-size="8.5" font-weight="700" fill="' + (n.agentStatus === 'error' ? 'var(--bad)' : n.agentStatus === 'running' ? '#0ea5e9' : 'var(--text-muted)') + '">Subagent · ' + escapeHtml(n.agentStatus || 'idle') + '</text>' : ''}
+          <text x="0" y="64" font-size="8.5" fill="var(--text-muted)" class="mono">${escapeHtml(n.id)}</text>
         </g>
         <g class="node-flip-btn" data-flip="${escapeAttr(n.id)}" transform="translate(${sz.w - 22}, 5)">
           <title>Flip / Revert port side</title>
@@ -638,7 +629,7 @@ window.A = window.A || {};
   }
 
   function renderNodesMarkup(agentCaps) {
-    const mcpNodes = editorState.nodes.filter((n) => n.type === 'mcp' && n.enabled !== false);
+    const mcpNodes = editorState.nodes.filter((n) => n.type === 'mcp');
     const collapseMcp = mcpNodes.length > 3 && !editorState.mcpExpanded;
     let mcpClusterDone = false;
 
@@ -876,9 +867,9 @@ window.A = window.A || {};
         ` : ''}
 
         ${node.type === 'mcp' ? `
-          <label class="set"><span><b>Server enabled</b><br><span class="mute">Disabled servers are hidden from this flow canvas</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="${escapeAttr(node.id)}" ${node.enabled !== false ? 'checked' : ''}></label>
+          <label class="set"><span><b>Server enabled</b><br><span class="mute">Pending servers stay visible; enable only after reviewing the endpoint</span></span><input type="checkbox" data-a="prop-mcp-enabled" data-id="${escapeAttr(node.id)}" ${node.enabled !== false ? 'checked' : ''}></label>
           <label class="lbl">MCP server preset</label>
-          <div class="mcp-desc">Configuration is saved here, but the hosted runtime does not yet start local MCP packages or connect to remote MCP endpoints. These presets are not callable tools.</div>
+          <div class="mcp-desc">Remote HTTPS Streamable HTTP servers are callable after you enable them. Local stdio presets cannot run inside a Vercel Function.</div>
           <select class="input" id="prop-mcp-preset">
             ${BUILTIN_MCP_SERVERS.map((s) => `
               <option value="${s.id}" ${(node.serverName || 'filesystem') === s.id ? 'selected' : ''}>
@@ -907,7 +898,8 @@ window.A = window.A || {};
               </div>
 
               <label class="lbl" style="margin-top:6px">${escapeHtml(currentPreset.paramLabel || 'Target / Parameters')}</label>
-              <input class="input" id="prop-mcp-param" value="${escapeAttr(node.param !== undefined ? node.param : currentPreset.defaultParam)}" placeholder="e.g. . or connection URL">
+              <input class="input" id="prop-mcp-param" value="${escapeAttr((node.serverParams && node.serverParams[node.serverName]) || (node.param !== undefined ? node.param : currentPreset.defaultParam))}" placeholder="e.g. . or connection URL">
+              ${currentPreset.id === 'remote' ? '<label class="lbl" style="margin-top:6px">Bearer token (optional)</label><input class="input" id="prop-mcp-token" type="password" value="' + escapeAttr((node.serverTokens && node.serverTokens.remote) || '') + '" placeholder="Only if this server requires a token">' : ''}
             `;
           })()}
 
@@ -1228,6 +1220,10 @@ window.A = window.A || {};
       mcpParamInput.oninput = () => {
         selectedNode.param = mcpParamInput.value;
       };
+    }
+    const mcpTokenInput = editor.querySelector('#prop-mcp-token');
+    if (mcpTokenInput && selectedNode) {
+      mcpTokenInput.oninput = () => { selectedNode.serverTokens = { ...(selectedNode.serverTokens || {}), remote: mcpTokenInput.value }; };
     }
     const mcpScope = editor.querySelector('#prop-mcp-scope');
     if (mcpScope && selectedNode) {
@@ -1612,13 +1608,16 @@ window.A = window.A || {};
       if (mcpPresetSel) {
         node.serverName = mcpPresetSel.value;
         const preset = BUILTIN_MCP_SERVERS.find((s) => s.id === mcpPresetSel.value);
-        if (preset) node.tools = preset.tools;
+        if (preset) { node.tools = preset.tools; node.param = preset.defaultParam; node.serverParams = { ...(node.serverParams || {}), [preset.id]: node.param }; }
       }
 
       const mcpParamInput = drawer.querySelector('#prop-mcp-param');
       if (mcpParamInput) {
         node.param = mcpParamInput.value;
+        node.serverParams = { ...(node.serverParams || {}), [node.serverName || 'filesystem']: mcpParamInput.value };
       }
+      const mcpTokenInput = drawer.querySelector('#prop-mcp-token');
+      if (mcpTokenInput) node.serverTokens = { ...(node.serverTokens || {}), remote: mcpTokenInput.value };
     }
 
     if (el) {
@@ -1680,7 +1679,7 @@ window.A = window.A || {};
     if (t.dataset.a === 'prop-specialty') { node.specialty = t.value; }
     if (t.dataset.a === 'prop-prompt') { node.systemPrompt = t.value; }
     if (t.dataset.a === 'prop-desc') { node.description = t.value; }
-    if (t.dataset.a === 'prop-mcp-enabled') { node.enabled = t.checked; renderEditor(); }
+    if (t.dataset.a === 'prop-mcp-enabled') { node.enabled = t.checked; node.requiresApproval = false; renderEditor(); }
     if (t.dataset.a === 'update-mcp-param') {
       const serverId = t.dataset.server;
       if (!node.serverParams) node.serverParams = {};
