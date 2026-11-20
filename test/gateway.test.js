@@ -11,7 +11,7 @@ const assert = require('assert');
 const http = require('http');
 const { test } = require('node:test');
 
-const { resolveUpstreamUrl, resolveProvider, stripProviderPrefix, matchProvider } = require('../lib/gateway/providers');
+const { resolveUpstreamUrl, resolveProvider, stripProviderPrefix, matchProvider, automaticCandidates } = require('../lib/gateway/providers');
 const { safeEqual } = require('../lib/gateway/http-util');
 const { selectBestUntried } = require('../lib/gateway/key-rotation');
 const { createGateway } = require('../lib/gateway/server');
@@ -101,6 +101,22 @@ test('selectBestUntried revives a key whose cooldown has expired', () => {
   const picked = selectBestUntried(keys, 'openai', 60000, new Set());
   assert.strictEqual(picked.id, 'cool');
   assert.strictEqual(picked.status, 'ACTIVE');
+});
+
+test('automatic routing skips expired and cooling provider keys', () => {
+  const models = [
+    { id: 'anyrouter/dead-model', pin: true },
+    { id: 'groq/working-model' },
+  ];
+  const keys = [
+    { id: 'expired', provider: 'anyrouter', status: 'EXPIRED' },
+    { id: 'cooling', provider: 'anyrouter', status: 'COOLDOWN', cooldownUntil: Date.now() + 60000 },
+    { id: 'healthy', provider: 'groq', status: 'ACTIVE' },
+  ];
+  assert.deepStrictEqual(
+    automaticCandidates(models, [], keys).map((model) => model.id),
+    ['groq/working-model'],
+  );
 });
 
 test('gateway requires the bearer key and serves /health without one', async () => {
