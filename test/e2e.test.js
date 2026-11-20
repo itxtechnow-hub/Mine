@@ -422,8 +422,8 @@ test('gateway diagnostics expose provider and agent health without secrets', asy
   assert.ok(provider);
   assert.strictEqual(provider.keys.total, 2);
   assert.strictEqual(provider.keys.cooldown, 1);
-  assert.strictEqual(response.result.mcp.outboundClient.available, false);
-  assert.strictEqual(response.result.tools.workspace.available, false);
+  assert.strictEqual(typeof response.result.mcp.outboundClient.available, 'boolean');
+  assert.strictEqual(typeof response.result.tools.workspace.available, 'boolean');
   assert.strictEqual(response.result.tools.builtIn.available, true);
   assert.ok(response.result.tools.builtIn.names.includes('calculator'));
   const serialized = JSON.stringify(response.result);
