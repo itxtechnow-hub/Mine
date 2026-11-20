@@ -165,6 +165,31 @@ test('gateway reports a helpful error when no provider matches', async () => {
   }
 });
 
+test('models endpoint hides models whose provider has no usable key', async () => {
+  const gateway = createGateway({
+    keys: [
+      { id: 'expired-anyrouter', provider: 'anyrouter', providerId: 'anyrouter', status: 'EXPIRED', enabled: true },
+      { id: 'active-groq', provider: 'groq', providerId: 'groq', status: 'ACTIVE', enabled: true },
+    ],
+    providers: [
+      { id: 'anyrouter', name: 'AnyRouter', url: 'https://anyrouter.example/v1' },
+      { id: 'groq', name: 'Groq', url: 'https://api.groq.com/openai/v1' },
+    ],
+    models: [{ id: 'anyrouter/old-model' }, { id: 'groq/working-model' }],
+    settings: { host: '127.0.0.1', port: 4596, vkey: 1, gatewayApiKey: 'sk-test-key' },
+  });
+  await gateway.start();
+  try {
+    const response = await get(4596, '/v1/models', 'sk-test-key');
+    assert.strictEqual(response.status, 200);
+    const ids = response.body.data.map((model) => model.id);
+    assert.ok(ids.includes('groq/working-model'));
+    assert.ok(!ids.includes('anyrouter/old-model'));
+  } finally {
+    await gateway.stop();
+  }
+});
+
 test('gateway returns 404 for an unknown route', async () => {
   const gateway = createGateway({
     keys: [],
