@@ -134,7 +134,8 @@ const A = {
 
     if (provider === 'cloudflare-workers-ai') {
       const accountId = ((document.getElementById('cloudflare-account-id') || {}).value || '').trim();
-      const configured = await window.vault.providers.configureCloudflare({ accountId });
+      const gatewayId = ((document.getElementById('cloudflare-gateway-id') || {}).value || 'default').trim() || 'default';
+      const configured = await window.vault.providers.configureCloudflare({ accountId, gatewayId });
       if (!configured || !configured.success) { toast((configured && configured.error) || 'Could not configure Cloudflare Workers AI'); return; }
     }
 
@@ -966,18 +967,24 @@ function populateManualProviderSelect() {
   if (!hidden) return;
   hidden.value = 'anthropic';
   const account = document.getElementById('cloudflare-account-id');
+  const gateway = document.getElementById('cloudflare-gateway-id');
   const saved = (S.providers || []).find((p) => p && p.id === 'cloudflare-workers-ai');
   if (account) account.value = saved && saved.accountId ? saved.accountId : '';
+  if (gateway) gateway.value = saved && saved.gatewayId ? saved.gatewayId : 'default';
   updateSelectedProviderDisplay('anthropic');
 }
 
 function updateCloudflareAccountField(providerId) {
   const group = document.getElementById('cloudflare-account-group');
+  const gatewayGroup = document.getElementById('cloudflare-gateway-group');
   if (group) group.hidden = providerId !== 'cloudflare-workers-ai';
+  if (gatewayGroup) gatewayGroup.hidden = providerId !== 'cloudflare-workers-ai';
   const account = document.getElementById('cloudflare-account-id');
   if (providerId === 'cloudflare-workers-ai' && account && !account.value) {
     const saved = (S.providers || []).find((p) => p && p.id === 'cloudflare-workers-ai');
     if (saved && saved.accountId) account.value = saved.accountId;
+    const gateway = document.getElementById('cloudflare-gateway-id');
+    if (gateway && saved && saved.gatewayId) gateway.value = saved.gatewayId;
   }
 }
 

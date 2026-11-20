@@ -132,7 +132,12 @@
   <div class="form-group" id="cloudflare-account-group" hidden>
     <label for="cloudflare-account-id">Cloudflare Account ID *</label>
     <input class="input" id="cloudflare-account-id" placeholder="32-character Account ID" autocomplete="off" spellcheck="false">
-    <span class="mute" style="font-size:11px">Find it in your Cloudflare dashboard. Your API token must include Account → Workers AI → Read. Mine uses the Account ID to fetch models and build the correct inference URL.</span>
+    <span class="mute" style="font-size:11px">Cloudflare Workers AI REST requests use the Account ID and model ID. Cloudflare does not require a Worker ID for this endpoint.</span>
+  </div>
+  <div class="form-group" id="cloudflare-gateway-group" hidden>
+    <label for="cloudflare-gateway-id">Cloudflare AI Gateway ID</label>
+    <input class="input" id="cloudflare-gateway-id" placeholder="default" value="default" autocomplete="off" spellcheck="false">
+    <span class="mute" style="font-size:11px">Workers AI requests require the cf-aig-gateway-id header. Use your gateway name, or default for the default gateway.</span>
   </div>
 
   <div class="form-group">
